@@ -1,2 +1,2 @@
-./data/rawdata/MCCS_RetailData.parquet
-./data/convertedcsv/MCCS_RetailData.csv
+data/rawdata/MCCS_RetailData.parquet
+data/convertedcsv/MCCS_RetailData.csv
