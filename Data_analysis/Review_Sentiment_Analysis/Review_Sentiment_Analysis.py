@@ -32,8 +32,6 @@ def pre_process(data):
     tokens = [lemmatizer.lemmatize(word, nltk_pos_tagger(tag)) for word, tag in nltk.pos_tag(tokens)]
     return {"tokens": tokens, "text": data["text"], "label": data["label"]}
 
-print(train_df.iloc[0])
-# train_df = train_df.map(pre_process)
-# test_df = test_df.map(pre_process)
+print(train_df.columns)
 
 
