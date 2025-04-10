@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="a522e16e-525e-4d39-b8b2-c21e9e266c2f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/pdf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/email_marketing_dashboard/pdf.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2ue42bPCbeRH3aHiqRNqXIwxyX0" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.Review_Sentiment_Analysis.executor": "Run",
+    "Python.pdf.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "PDF",
+    "last_opened_file_path": "/Users/louiszhang/Personal/University/CS5926/data-analysis",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-410509235cf1-JavaScript-PY-242.20224.428" />
+        <option value="bundled-python-sdk-80e8e15d2b92-39cff9de6eef-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.20224.428" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="a522e16e-525e-4d39-b8b2-c21e9e266c2f" name="Changes" comment="" />
+      <created>1742595499750</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1742595499750</updated>
+      <workItem from="1742595500966" duration="6865000" />
+      <workItem from="1742831095381" duration="2797000" />
+      <workItem from="1742840897225" duration="7586000" />
+      <workItem from="1742914961078" duration="300000" />
+      <workItem from="1742950176566" duration="4513000" />
+      <workItem from="1743087655659" duration="1737000" />
+      <workItem from="1743125497987" duration="1606000" />
+      <workItem from="1743444801569" duration="1375000" />
+      <workItem from="1743453887405" duration="13255000" />
+      <workItem from="1743628104749" duration="1843000" />
+      <workItem from="1744056699025" duration="4397000" />
+      <workItem from="1744165369368" duration="624000" />
+      <workItem from="1744169739960" duration="1000" />
+      <workItem from="1744297612293" duration="8552000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/data_analysis$Review_Sentiment_Analysis.coverage" NAME="Review_Sentiment_Analysis Coverage Results" MODIFIED="1742915049775" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Data_analysis/Review_Sentiment_Analysis" />
+    <SUITE FILE_PATH="coverage/data_analysis$pdf.coverage" NAME="pdf Coverage Results" MODIFIED="1743693342024" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/email_marketing_dashboard" />
+  </component>
+</project>
