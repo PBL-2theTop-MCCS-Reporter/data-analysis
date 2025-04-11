@@ -29,7 +29,7 @@ def make_bullet_list(styles, bullet_points):
     return ListFlowable(
         list,
         bulletType="bullet",
-        bulletFontName="Montserrat-Bold",
+        bulletFontName="Montserrat-Medium",
         bulletFontSize=10,
         spaceBefore=12
     )
@@ -54,17 +54,17 @@ def create_pdf():
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         "Title",
-        fontName="Montserrat",  # You can replace with your preferred font
+        fontName="Montserrat-Medium",  # You can replace with your preferred font
         fontSize=15,
         leading=12,
         textColor=(0.141, 0.267, 0.424),  # Set text color to blue
         spaceAfter=10,
         alignment=1
     )
-    styles['Normal'].fontName = "Montserrat"
+    styles['Normal'].fontName = "Montserrat-Light"
 
     # Title
-    title = Paragraph("<b>September 2024 MCCS Marketing Analytics Assessment</b>", title_style)
+    title = Paragraph("September 2024 MCCS Marketing Analytics Assessment", title_style)
 
     # Purpose
     purpose_text = Paragraph(
