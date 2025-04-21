@@ -1,0 +1,23 @@
+# Core data processing libraries
+pandas>=1.3.0
+numpy>=1.20.0
+dask>=2022.1.0
+pyarrow>=6.0.0  # For parquet support
+
+# Visualization libraries
+matplotlib>=3.4.0
+seaborn>=0.11.0
+plotly>=5.5.0
+
+# Interactive dashboard
+streamlit>=1.10.0
+
+# Optional: for advanced visualizations
+scikit-learn>=1.0.0  # For any machine learning components
+statsmodels>=0.13.0  # For time series analysis
+
+# LLM integration
+langchain>=0.1.0
+langchain-openai>=0.0.1
+langchain-core>=0.1.0
+openai>=1.0.0
