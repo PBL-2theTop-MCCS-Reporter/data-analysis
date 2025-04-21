@@ -21,6 +21,7 @@ def load_data():
     data['summary']['click_to_open_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv')
     data['summary']['unique_unsubscribes'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unique_Unsubscribes.csv')
     data['summary']['unsubscribe_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unsubscribe_Rate.csv')
+   
     
     # Load time series data - with more detailed debugging
     csv_path = f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv' 
