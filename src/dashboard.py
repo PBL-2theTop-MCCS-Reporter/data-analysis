@@ -78,8 +78,8 @@ def query_status_update(new_state):
 def generate_report():
     pdf_buffer = create_pdf()
     st.session_state.generated_pdf = pdf_buffer
-    # doc_buffer = create_doc()
-    # st.session_state.generated_doc = doc_buffer
+    doc_buffer = create_doc()
+    st.session_state.generated_doc = doc_buffer
 
 
 current_month = (pd.Timestamp.now() - pd.DateOffset(months=1)).strftime("%Y-%m")
@@ -129,12 +129,12 @@ elif st.session_state.quick_options_status == "Success":
         file_name=filename + ".pdf",
         mime="application/pdf"
     )
-    # st.download_button(
-    #     label="Get Report as Word Document",
-    #     data=st.session_state.generated_doc,
-    #     file_name=filename + ".docx",
-    #     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    # )
+    st.download_button(
+        label="Get Report as Word Document",
+        data=st.session_state.generated_doc,
+        file_name=filename + ".docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
     quick_options_status_update("Not Active")
 
 elif st.session_state.quick_options_status == "Failure":

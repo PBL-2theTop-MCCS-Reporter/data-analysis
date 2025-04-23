@@ -3,7 +3,7 @@ from nltk import align
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from docx import Document
 from docx.shared import Pt, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_PARAGRAPH_ALIGNMENT, WD_BREAK
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListItem, ListFlowable
 from reportlab.lib.pagesizes import letter
@@ -13,6 +13,7 @@ from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from ContentBlock import ContentBlock, Alignment
+from docx.oxml.ns import qn
 import base64
 import sys
 import os
@@ -125,44 +126,39 @@ def content_block_to_formatted_text(block):
         tagged = f"<font color='{block.color}'>{tagged}</font>"
     return tagged
 
-def make_bullet_list(styles, bullet_points, format):
+def pdf_bullet_list(styles, bullet_points):
     bullet_list = []
     tagged = ""
     indent_block = False
     for bullet in bullet_points:
-        if format == "pdf":
-            tagged = tagged + content_block_to_formatted_text(bullet)
-            if bullet.indent:
-                indent_block = True
-            if bullet.new_paragraph:
-                paragraph = Paragraph(tagged, styles["Normal"])
-                if indent_block:
-                    bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
-                else:
-                    bullet_list.append(ListItem(paragraph, bulletColor='black'))
-                bullet_list.append(Spacer(1, 6))
-                tagged = ""
-                indent_block = False
-            elif bullet.new_line:
-                paragraph = Paragraph(tagged, styles["Normal"])
-                if indent_block:
-                    bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
-                else:
-                    bullet_list.append(ListItem(paragraph, bulletColor='black'))
-                tagged = ""
-                indent_block = False
-        else:
-            bullet_list.append(f"{bullet}")
+        tagged = tagged + content_block_to_formatted_text(bullet)
+        if bullet.indent:
+            indent_block = True
+        if bullet.new_paragraph:
+            paragraph = Paragraph(tagged, styles["Normal"])
+            if indent_block:
+                bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
+            else:
+                bullet_list.append(ListItem(paragraph, bulletColor='black'))
+            bullet_list.append(Spacer(1, 6))
+            tagged = ""
+            indent_block = False
+        elif bullet.new_line:
+            paragraph = Paragraph(tagged, styles["Normal"])
+            if indent_block:
+                bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
+            else:
+                bullet_list.append(ListItem(paragraph, bulletColor='black'))
+            tagged = ""
+            indent_block = False
 
-    if format == "pdf":
-        return ListFlowable(
-            bullet_list,
-            bulletType="bullet",
-            bulletFontName="Montserrat-Medium",
-            bulletFontSize=10,
-            spaceBefore=12
-        )
-    return bullet_list
+    return ListFlowable(
+        bullet_list,
+        bulletType="bullet",
+        bulletFontName="Montserrat-Medium",
+        bulletFontSize=10,
+        spaceBefore=12
+    )
 
 def create_pdf():
     # Register fonts and font family
@@ -226,7 +222,7 @@ def create_pdf():
                 tagged = ""
                 indent_block = False
         elif isinstance(block, list):
-            bullet_list = make_bullet_list(styles, block, "pdf")
+            bullet_list = pdf_bullet_list(styles, block)
             content_list.append(bullet_list)
 
     # Use content list to build a doc
@@ -239,51 +235,65 @@ def create_pdf():
 def create_doc():
     document = Document()
 
-    # Register fonts
-    # pdfmetrics.registerFont(TTFont("Montserrat-Light", "./fonts/Montserrat/static/Montserrat-Light.ttf"))
-    # pdfmetrics.registerFont(TTFont("Montserrat-Medium", "./fonts/Montserrat/static/Montserrat-Medium.ttf"))
-    #
-    # registerFontFamily("Montserrat", normal="Montserrat-Light", bold="Montserrat-Medium")
-
-    # Set margins
     section = document.sections[0]
     section.top_margin = Inches(0.5)
     section.bottom_margin = Inches(0.5)
     section.left_margin = Inches(0.5)
     section.right_margin = Inches(0.5)
 
-    # Title
-    title_para = document.add_paragraph()
-    title_run = title_para.add_run(title_text)
-    title_run.bold = True
-    title_run.font.size = Pt(15)
-    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    def render_run(run, block):
+        run.text = block.text
+        run.bold = block.bold
+        run.underline = block.underline
+        run.font.size = Pt(block.font_size)
+        run.font.color.rgb = block.get_rgb_color()
+        run.font.name = "Montserrat"
+        r = run._element
+        r.rPr.rFonts.set(qn('w:eastAsia'), 'Calibri')  # fallback if Montserrat is not available
 
-    # Purpose
-    purpose_para = document.add_paragraph()
-    purpose_run = purpose_para.add_run("Purpose: ")
-    purpose_run.bold = True
-    purpose_run.underline = True
-    purpose_para.add_run(
-        "To support leaders and subject matter experts in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families.")
+    def add_paragraph_from_blocks(blocks, style=None, is_bullet=False, is_indent=False):
+        para = document.add_paragraph(style=style)
+        if is_bullet:
+            para.style = 'List Bullet 2' if is_indent else 'List Bullet'
 
-    # Findings - Digital
-    document.add_paragraph("Findings - Review of digital performance, advertising campaigns, and sales:",
-                           style="Heading 2")
-    for item in make_bullet_list(None, digital_findings_bullet_points, "word"):
-        document.add_paragraph(item, style="List Bullet")
+        para.paragraph_format.line_spacing = Pt(12)
+        para.paragraph_format.space_after = Pt(2)
+        para.paragraph_format.space_before = Pt(0)
 
-    # Findings - Main Exchanges
-    document.add_paragraph(
-        "Findings - Review of Main Exchanges, Marine Marts, and MCHS CSA T Surveys and Google Reviews:",
-        style="Heading 2")
-    for item in make_bullet_list(None, main_exchanges_findings_bullet_points, "word"):
-        document.add_paragraph(item, style="List Bullet")
+        first_block = blocks[0]
+        if first_block.alignment == Alignment.CENTER:
+            para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        else:
+            para.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
-    # Assessments
-    document.add_paragraph("Assessments", style="Heading 2")
+        for i, block in enumerate(blocks):
+            run = para.add_run()
+            render_run(run, block)
+            if block.new_line and i < len(blocks) - 1:
+                run.add_break(WD_BREAK.LINE)
 
-    # Build document
+    current_line = []
+    indent_line = False
+    for item in report_content:
+        if isinstance(item, list):
+            bullet_item = []
+            for block in item:
+                bullet_item.append(block)
+                if block.indent:
+                    indent_line = True
+                if block.new_line or block.new_paragraph:
+                    if bullet_item:
+                        add_paragraph_from_blocks(bullet_item, is_bullet=True, is_indent=indent_line)
+                        bullet_item = []
+                        indent_line = False
+        else:
+            current_line.append(item)
+            if item.new_line or item.new_paragraph:
+                add_paragraph_from_blocks(current_line)
+                current_line = []
+    if current_line:
+        add_paragraph_from_blocks(current_line)
+
     buffer = BytesIO()
     document.save(buffer)
     buffer.seek(0)
