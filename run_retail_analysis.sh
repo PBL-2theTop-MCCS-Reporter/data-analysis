@@ -119,6 +119,14 @@ while true; do
                     fi
                     
                     echo "Insights generated and saved to 'retail_analysis_results/llm_insights.md'"
+                    
+                    # Ask if user wants to generate PDF
+                    read -p "Would you like to generate a PDF version of the insights? (y/n): " generate_pdf
+                    if [[ "$generate_pdf" == "y" || "$generate_pdf" == "Y" ]]; then
+                        echo "Generating PDF version of insights..."
+                        python retail_llm_insights.py --pdf_only
+                        echo "PDF generated and saved to 'retail_analysis_results/llm_insights.pdf'"
+                    fi
                 fi
             fi
             ;;

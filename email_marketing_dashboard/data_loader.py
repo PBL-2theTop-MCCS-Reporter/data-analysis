@@ -3,7 +3,12 @@ import os
 
 def load_data():
     """Load all relevant CSV files and return as structured dictionary"""
-    base_path = "/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv"
+    # Get the directory where the current script is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to the project root
+    project_root = os.path.dirname(current_dir)
+    # Construct the path to data directory
+    base_path = os.path.join(project_root, "data", "convertedcsv")
     
     data = {
         'summary': {},
@@ -12,18 +17,18 @@ def load_data():
     }
     
     # Load summary metrics
-    data['summary']['deliveries'] = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Deliveries.csv')
-    data['summary']['sends'] = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Sends.csv')
-    data['summary']['bounce_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Bounce_Rate.csv')
-    data['summary']['open_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Open_Rate.csv')
-    data['summary']['unique_opens'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unique_Opens.csv')
-    data['summary']['unique_clicks'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unique_Clicks.csv')
-    data['summary']['click_to_open_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv')
-    data['summary']['unique_unsubscribes'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unique_Unsubscribes.csv')
-    data['summary']['unsubscribe_rate'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Unsubscribe_Rate.csv')
+    data['summary']['deliveries'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Deliveries.csv'))
+    data['summary']['sends'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Sends.csv'))
+    data['summary']['bounce_rate'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Bounce_Rate.csv'))
+    data['summary']['open_rate'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Open_Rate.csv'))
+    data['summary']['unique_opens'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Unique_Opens.csv'))
+    data['summary']['unique_clicks'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Unique_Clicks.csv'))
+    data['summary']['click_to_open_rate'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv'))
+    data['summary']['unique_unsubscribes'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Unique_Unsubscribes.csv'))
+    data['summary']['unsubscribe_rate'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Unsubscribe_Rate.csv'))
     
     # Load time series data - with more detailed debugging
-    csv_path = f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv' 
+    csv_path = os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv')
     print(f"Loading CSV from: {csv_path}")
     print(f"File exists: {os.path.exists(csv_path)}")
     
@@ -75,7 +80,7 @@ def load_data():
     
     # Load engagement time data
     try:
-        engagement_time = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv')
+        engagement_time = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv'))
         engagement_time['Daily'] = pd.to_datetime(engagement_time['Daily'])
         # Make sure all column names are stripped
         engagement_time.columns = engagement_time.columns.str.strip()
@@ -86,21 +91,21 @@ def load_data():
     
     # Load breakdowns
     try:
-        data['breakdowns']['delivery_by_domain'] = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-By_Email_Domain.csv')
-        data['breakdowns']['engagement_by_domain'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-By_Email_Domain.csv')
-        data['breakdowns']['delivery_by_weekday'] = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-By_Day_of_the_Week.csv')
-        data['breakdowns']['engagement_by_weekday'] = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-By_Day_of_the_Week.csv')
+        data['breakdowns']['delivery_by_domain'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-By_Email_Domain.csv'))
+        data['breakdowns']['engagement_by_domain'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-By_Email_Domain.csv'))
+        data['breakdowns']['delivery_by_weekday'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-By_Day_of_the_Week.csv'))
+        data['breakdowns']['engagement_by_weekday'] = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-By_Day_of_the_Week.csv'))
     except Exception as e:
         print(f"Error loading breakdown data: {e}")
     
     # Load details
     data['details'] = {}
     try:
-        delivery_details = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Email_Deliveries_Details.csv')
+        delivery_details = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Email_Deliveries_Details.csv'))
         delivery_details['Send Date'] = pd.to_datetime(delivery_details['Send Date'])
         data['details']['delivery'] = delivery_details
         
-        engagement_details = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Details.csv')
+        engagement_details = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Email_Engagement_Details.csv'))
         engagement_details['Send Date'] = pd.to_datetime(engagement_details['Send Date'])
         data['details']['engagement'] = engagement_details
     except Exception as e:
@@ -138,19 +143,24 @@ def get_performance_vs_previous(data):
 
 def load_data_simple():
     """Simple version that returns just the three main dataframes"""
-    base_path = "/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv"
+    # Get the directory where the current script is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level to the project root
+    project_root = os.path.dirname(current_dir)
+    # Construct the path to data directory
+    base_path = os.path.join(project_root, "data", "convertedcsv")
     
     # Load delivery data
-    delivery_daily = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv')
+    delivery_daily = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv'))
     delivery_daily['Daily'] = pd.to_datetime(delivery_daily['Daily'])
     
     # Load engagement data
-    engagement_daily = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv')
+    engagement_daily = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv'))
     engagement_daily['Daily'] = pd.to_datetime(engagement_daily['Daily'])
     
     # Load email details
     try:
-        email_details = pd.read_csv(f'{base_path}/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Details.csv')
+        email_details = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Email_Engagement_Details.csv'))
         if 'Send Date' in email_details.columns:
             email_details['Send Date'] = pd.to_datetime(email_details['Send Date'])
     except:

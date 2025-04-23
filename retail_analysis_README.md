@@ -34,7 +34,7 @@ bash -c "python -m venv venv && source venv/bin/activate && pip install -r retai
 
 For AI insights (requires API key):
 ```bash
-bash -c "python -m venv venv && source venv/bin/activate && pip install -r retail_analysis_requirements.txt && python retail_llm_insights.py --api_key YOUR_API_KEY"
+bash -c "python -m venv venv && source venv/bin/activate && pip install -r retail_analysis_requirements.txt && python retail_llm_insights.py --api_key YOUR_API_KEY [--generate_pdf]"
 ```
 
 ## Data Description
@@ -74,6 +74,8 @@ streamlit
 langchain
 langchain-openai
 openai
+weasyprint
+markdown
 ```
 
 You can install all dependencies with:
@@ -120,7 +122,7 @@ This will:
 The LLM insights module can be used to generate advanced insights from the analysis results:
 
 ```bash
-python retail_llm_insights.py --api_key "your-openai-api-key" [--question "your specific question"]
+python retail_llm_insights.py --api_key "your-openai-api-key" [--question "your specific question"] [--generate_pdf]
 ```
 
 This will:
@@ -128,6 +130,7 @@ This will:
 2. Send the data to OpenAI's language models
 3. Generate comprehensive insights and recommendations
 4. Save the insights to a markdown file in the results directory
+5. Optionally generate a PDF version of the insights (when using the `--generate_pdf` flag)
 
 You can also access this functionality through:
 - The interactive dashboard's "AI Insights" section
@@ -183,6 +186,7 @@ The dashboard provides:
 
 The LLM insights module generates:
 - A markdown file (`llm_insights.md`) with comprehensive analysis
+- A PDF file (`llm_insights.pdf`) when the PDF generation option is selected
 - Strategic recommendations based on the data
 - Answers to specific questions about the retail data
 

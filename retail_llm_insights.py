@@ -6,6 +6,8 @@ import pandas as pd
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
+import markdown
+import importlib.util
 
 def configure_openai_client(api_key=None):
     """Configure the OpenAI client with the provided API key"""
@@ -114,6 +116,106 @@ def save_insights_to_file(insights, file_path='retail_analysis_results/llm_insig
         print(f"Error saving insights: {str(e)}")
         return False
 
+def convert_markdown_to_pdf(markdown_file_path, pdf_file_path=None):
+    """Convert markdown file to PDF using reportlab
+    
+    Args:
+        markdown_file_path (str): Path to the markdown file
+        pdf_file_path (str, optional): Path to save the PDF file. If None, uses the same path as markdown but with .pdf extension
+        
+    Returns:
+        bool: True if conversion was successful, False otherwise
+    """
+    if pdf_file_path is None:
+        # Replace .md extension with .pdf
+        pdf_file_path = os.path.splitext(markdown_file_path)[0] + '.pdf'
+    
+    try:
+        # Check if reportlab is installed
+        if importlib.util.find_spec("reportlab") is None:
+            print("ReportLab is not installed. Installing required packages...")
+            os.system("pip install reportlab markdown")
+            print("Packages installed.")
+        
+        # Import here to avoid errors if not installed
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.units import inch
+        
+        # Read markdown content
+        with open(markdown_file_path, 'r') as f:
+            markdown_content = f.read()
+        
+        # Create a PDF document
+        doc = SimpleDocTemplate(pdf_file_path, pagesize=letter)
+        styles = getSampleStyleSheet()
+        
+        # Create custom styles
+        heading1_style = ParagraphStyle(name='CustomHeading1', 
+                                       parent=styles['Heading1'], 
+                                       fontSize=16,
+                                       spaceAfter=12)
+        heading2_style = ParagraphStyle(name='CustomHeading2', 
+                                       parent=styles['Heading2'], 
+                                       fontSize=14,
+                                       spaceAfter=10)
+        heading3_style = ParagraphStyle(name='CustomHeading3', 
+                                       parent=styles['Heading3'], 
+                                       fontSize=12,
+                                       spaceAfter=8)
+        body_style = ParagraphStyle(name='CustomBodyText', 
+                                   parent=styles['BodyText'], 
+                                   fontSize=10,
+                                   spaceAfter=6)
+        
+        # Process markdown content
+        lines = markdown_content.split('\n')
+        story = []
+        
+        # Add title
+        story.append(Paragraph("Retail Analysis Insights", styles['Title']))
+        story.append(Spacer(1, 0.25*inch))
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                story.append(Spacer(1, 0.1*inch))
+                continue
+                
+            # Process headings
+            if line.startswith('# '):
+                story.append(Paragraph(line[2:], heading1_style))
+            elif line.startswith('## '):
+                story.append(Paragraph(line[3:], heading2_style))
+            elif line.startswith('### '):
+                story.append(Paragraph(line[4:], heading3_style))
+            # Process lists
+            elif line.startswith('- ') or line.startswith('* '):
+                story.append(Paragraph('• ' + line[2:], body_style))
+            elif line.startswith('  - ') or line.startswith('  * '):
+                story.append(Paragraph('  ◦ ' + line[4:], body_style))
+            # Process numbered lists
+            elif line.startswith('1. ') or line.startswith('2. ') or line.startswith('3. '):
+                # Extract the number and text
+                parts = line.split('. ', 1)
+                if len(parts) > 1:
+                    story.append(Paragraph(f"{parts[0]}. {parts[1]}", body_style))
+                else:
+                    story.append(Paragraph(line, body_style))
+            # Regular text
+            else:
+                story.append(Paragraph(line, body_style))
+        
+        # Build the PDF
+        doc.build(story)
+        
+        print(f"PDF saved to {pdf_file_path}")
+        return True
+    except Exception as e:
+        print(f"Error converting markdown to PDF: {str(e)}")
+        return False
+
 if __name__ == "__main__":
     # This section runs when the script is executed directly
     import argparse
@@ -123,20 +225,38 @@ if __name__ == "__main__":
     parser.add_argument('--question', type=str, help='Specific question to ask about the data')
     parser.add_argument('--output', type=str, default='retail_analysis_results/llm_insights.md', 
                         help='Output file path for insights')
+    parser.add_argument('--pdf', type=str, help='Output file path for PDF version of insights')
+    parser.add_argument('--generate_pdf', action='store_true', help='Generate PDF version of insights')
+    parser.add_argument('--pdf_only', action='store_true', help='Only generate PDF from existing markdown file')
     
     args = parser.parse_args()
     
-    # Configure OpenAI client
-    client = configure_openai_client(args.api_key)
-    
-    # Generate insights
-    insights = generate_retail_insights(question=args.question, openai_client=client)
-    
-    # Save insights to file
-    save_insights_to_file(insights, args.output)
-    
-    # Print insights to console
-    print("\n" + "="*50)
-    print("RETAIL ANALYSIS LLM INSIGHTS")
-    print("="*50)
-    print(insights)
+    # Check if we're only generating a PDF from existing markdown
+    if args.pdf_only or (args.generate_pdf and not args.api_key):
+        # Only generate PDF from existing markdown file
+        pdf_path = args.pdf if args.pdf else None
+        success = convert_markdown_to_pdf(args.output, pdf_path)
+        if success:
+            print(f"PDF generated successfully from {args.output}")
+        else:
+            print(f"Failed to generate PDF from {args.output}")
+    else:
+        # Configure OpenAI client
+        client = configure_openai_client(args.api_key)
+        
+        # Generate insights
+        insights = generate_retail_insights(question=args.question, openai_client=client)
+        
+        # Save insights to file
+        save_insights_to_file(insights, args.output)
+        
+        # Generate PDF if requested
+        if args.generate_pdf or args.pdf:
+            pdf_path = args.pdf if args.pdf else None
+            convert_markdown_to_pdf(args.output, pdf_path)
+        
+        # Print insights to console
+        print("\n" + "="*50)
+        print("RETAIL ANALYSIS LLM INSIGHTS")
+        print("="*50)
+        print(insights)
