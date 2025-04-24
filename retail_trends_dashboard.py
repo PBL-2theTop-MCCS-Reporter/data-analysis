@@ -80,19 +80,28 @@ def load_data():
             df = pd.read_parquet('retail_data_sample.parquet')
             st.success("Loaded data from cache.")
         else:
-            # Load the full dataset with Dask
-            ddf = dd.read_csv('data/convertedcsv/MCCS_RetailData.csv', 
-                             assume_missing=True,
-                             blocksize="64MB")
+            # Define file paths
+            csv_path = 'data/convertedcsv/MCCS_RetailData.csv'
+            parquet_path = 'data/rawdata/MCCS_RetailData.parquet'
+            
+            # Try to load from CSV first, then Parquet if CSV doesn't exist
+            if os.path.exists(csv_path):
+                st.info(f"Loading from CSV file: {csv_path}")
+                ddf = dd.read_csv(csv_path, assume_missing=True, blocksize="64MB")
+            elif os.path.exists(parquet_path):
+                st.info(f"Loading from Parquet file: {parquet_path}")
+                ddf = dd.read_parquet(parquet_path)
+            else:
+                raise FileNotFoundError("Could not find retail data in CSV or Parquet format")
             
             # Take a sample for interactive analysis
             # In a real app, you might want to use the full dataset with Dask
             # or implement more sophisticated sampling
             df = ddf.sample(frac=0.1).compute()
             
-            # Convert date columns
-            df['SALE_DATE'] = pd.to_datetime(df['SALE_DATE'], format='%m/%d/%y')
-            df['SALE_DATE_TIME'] = pd.to_datetime(df['SALE_DATE_TIME'], format='%m/%d/%y %H:%M')
+            # Convert date columns - using flexible format detection
+            df['SALE_DATE'] = pd.to_datetime(df['SALE_DATE'], errors='coerce')
+            df['SALE_DATE_TIME'] = pd.to_datetime(df['SALE_DATE_TIME'], errors='coerce')
             
             # Add derived columns
             df['MONTH'] = df['SALE_DATE'].dt.month

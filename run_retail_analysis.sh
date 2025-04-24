@@ -53,12 +53,23 @@ if [ $? -ne 0 ]; then
 fi
 echo "Dependencies installed successfully."
 
-# Check if the data file exists
-if [ ! -f "data/convertedcsv/MCCS_RetailData.csv" ]; then
-    echo "Warning: Could not find the retail data CSV file."
-    echo "Please ensure the file exists at: data/convertedcsv/MCCS_RetailData.csv"
+# Check if the data files exist
+csv_path="data/convertedcsv/MCCS_RetailData.csv"
+parquet_path="data/rawdata/MCCS_RetailData.parquet"
+sample_parquet_path="retail_data_sample.parquet"
+
+if [ -f "$csv_path" ]; then
+    echo "Found retail data CSV file at: $csv_path"
+elif [ -f "$parquet_path" ]; then
+    echo "Found retail data Parquet file at: $parquet_path"
+elif [ -f "$sample_parquet_path" ]; then
+    echo "Found sample retail data Parquet file at: $sample_parquet_path"
 else
-    echo "Found retail data CSV file."
+    echo "Warning: Could not find the retail data files."
+    echo "Please ensure one of these files exists:"
+    echo "  - $csv_path"
+    echo "  - $parquet_path"
+    echo "  - $sample_parquet_path"
 fi
 
 echo

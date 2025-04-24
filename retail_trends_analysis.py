@@ -25,14 +25,30 @@ print("Starting Retail Sales Data Analysis...")
 print("Loading data (this may take a few minutes due to the large file size)...")
 
 # Load the data using Dask for better memory management with large files
-# Use the CSV version as it's more accessible
-df = dd.read_csv('data/convertedcsv/MCCS_RetailData.csv', 
-                 assume_missing=True,
-                 blocksize="64MB")  # Adjust blocksize as needed
+# Try to read from CSV first, if not available, use the Parquet file
+import os
 
-# Convert date columns to datetime
-df['SALE_DATE'] = dd.to_datetime(df['SALE_DATE'], format='%m/%d/%y')
-df['SALE_DATE_TIME'] = dd.to_datetime(df['SALE_DATE_TIME'], format='%m/%d/%y %H:%M')
+csv_path = 'data/convertedcsv/MCCS_RetailData.csv'
+parquet_path = 'data/rawdata/MCCS_RetailData.parquet'
+sample_parquet_path = 'retail_data_sample.parquet'
+
+if os.path.exists(csv_path):
+    print(f"Reading from CSV file: {csv_path}")
+    df = dd.read_csv(csv_path, 
+                    assume_missing=True,
+                    blocksize="64MB")  # Adjust blocksize as needed
+elif os.path.exists(parquet_path):
+    print(f"CSV file not found. Reading from Parquet file: {parquet_path}")
+    df = dd.read_parquet(parquet_path)
+elif os.path.exists(sample_parquet_path):
+    print(f"Using sample Parquet file: {sample_parquet_path}")
+    df = dd.read_parquet(sample_parquet_path)
+else:
+    raise FileNotFoundError("Could not find retail data in CSV or Parquet format. Please ensure either file exists.")
+
+# Convert date columns to datetime - using flexible format detection
+df['SALE_DATE'] = dd.to_datetime(df['SALE_DATE'], errors='coerce')
+df['SALE_DATE_TIME'] = dd.to_datetime(df['SALE_DATE_TIME'], errors='coerce')
 
 # Create a month column for monthly analysis
 df['MONTH'] = df['SALE_DATE'].dt.month
