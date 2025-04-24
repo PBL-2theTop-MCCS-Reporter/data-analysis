@@ -3,7 +3,7 @@ import os
 
 def load_data():
     """Load all relevant CSV files and return as structured dictionary"""
-    base_path = "/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv"
+    base_path = "data/convertedcsv"
     
     data = {
         'summary': {},
@@ -138,7 +138,7 @@ def get_performance_vs_previous(data):
 
 def load_data_simple():
     """Simple version that returns just the three main dataframes"""
-    base_path = "/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv"
+    base_path = "data/convertedcsv"
     
     # Load delivery data
     delivery_daily = pd.read_csv(f'{base_path}/Advertising_Email_Deliveries/Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv')
