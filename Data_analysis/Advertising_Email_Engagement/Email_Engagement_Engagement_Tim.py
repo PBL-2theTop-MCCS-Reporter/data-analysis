@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load the data
-data = pd.read_csv('/Users/huawei/Spaces/pbl/DoD SAFE/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv', header=0)  # Adjust header if necessary
+data = pd.read_csv('/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv', header=0)  # Adjust header if necessary
 data.columns = data.columns.str.strip()
 print(data.columns)
 
