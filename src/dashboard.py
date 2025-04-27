@@ -1,17 +1,27 @@
 import streamlit as st
+from dotenv import load_dotenv
 import pandas as pd
 import time
 import base64
 from report import create_pdf, create_doc
+import sys
+import os
 
 
-def get_img_as_base64(file):
-    with open(file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# Import retail_llm_insights
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+import retail_llm_insights
 
+load_dotenv()
 
-header_img = get_img_as_base64("images/MCCS-header.png")
+# def get_img_as_base64(file):
+#     with open(file, "rb") as f:
+#         data = f.read()
+#     return base64.b64encode(data).decode()
+#
+#
+# header_img = get_img_as_base64("images/MCCS-header.png")
 
 # style = f"""
 # <style>
@@ -19,6 +29,7 @@ header_img = get_img_as_base64("images/MCCS-header.png")
 #     background-image: url("data:image/png;base64,{header_img}");
 #     background-size: cover;
 # }}
+
 style = f"""
 <style>
 [data-testid="stForm"] {{
@@ -64,6 +75,8 @@ if "generated_pdf" not in st.session_state:
 if "generated_doc" not in st.session_state:
     st.session_state.generated_doc = ""
 
+if "query" not in st.session_state:
+    st.session_state.query = ""
 
 # functions
 def quick_options_status_update(new_state):
@@ -82,6 +95,20 @@ def generate_report():
     doc_buffer = create_doc()
     st.session_state.generated_doc = doc_buffer
 
+def generate_report_with_prompt(prompt):
+    api_key = os.getenv('OPENAI_API_KEY')
+    if api_key is None:
+        raise ValueError("OPENAI_API_KEY not found in environment. Did you forget to load .env? If so, please create .env in your root directory, and store your api key in the OPENAI_API_KEY environment variable.")
+    open_ai_client = retail_llm_insights.configure_openai_client(api_key=api_key)
+
+    summary_content = retail_llm_insights.read_summary_report()
+    insights = retail_llm_insights.generate_retail_insights(
+        summary_content=summary_content,
+        question=prompt,
+        openai_client=open_ai_client,
+    )
+    pdf_buffer = retail_llm_insights.markdown_to_pdf_buffer(insights)
+    st.session_state.generated_pdf = pdf_buffer
 
 current_month = (pd.Timestamp.now() - pd.DateOffset(months=1)).strftime("%Y-%m")
 date_range = pd.date_range(start="2024-08", end="2024-09", freq="MS").strftime("%b %Y").tolist()
@@ -137,7 +164,6 @@ elif st.session_state.quick_options_status == "Success":
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
     quick_options_status_update("Not Active")
-
 elif st.session_state.quick_options_status == "Failure":
     st.toast("Report failed to generate", icon="❌")
     quick_options_status_update("Not Active")
@@ -150,28 +176,31 @@ st.write(
 with st.form(key="ai_report_form"):
     # report_query = st.text_input("Query", key="report_query", on_change=enable_button)
     # submit_button = st.form_submit_button(label="Generate Report", disabled=st.session_state.button_disabled)
-    report_query = st.text_input("Query", key="report_query")
+    st.session_state.query = st.text_input("Query", key="report_query")
 
     if st.session_state.query_status == "Loading":
         submit_button = st.form_submit_button(label="Generate Report", disabled=True)
     else:
         submit_button = st.form_submit_button(label="Generate Report", on_click=lambda: query_status_update("Loading"))
 
-    if st.session_state.query_status == "Loading":
-        if report_query.strip():
-            with st.spinner(''):
-                generate_report()
-            query_status_update("Success")
-        else:
-            query_status_update("Failure")
-        st.rerun()
-    elif st.session_state.query_status == "Success":
-        st.balloons()
-        st.toast(f"Generating a report using \"{report_query}\"", icon="✅")
-        query_status_update("Not Active")
-    elif st.session_state.query_status == "Failure":
-        st.toast("Prompt cannot be empty", icon="❌")
-        query_status_update("Not Active")
+if st.session_state.query_status == "Loading":
+    generate_report_with_prompt(st.session_state.query)
+    query_status_update("Success")
+    st.rerun()
+elif st.session_state.query_status == "Success":
+    st.balloons()
+    st.toast(f"Generating a report using the prompt {st.session_state.query}", icon="✅")
+    filename = f"MCCS Marketing Analytics Assessment"
+    st.download_button(
+        label="Get Report as PDF",
+        data=st.session_state.generated_pdf,
+        file_name=filename + ".pdf",
+        mime="application/pdf"
+    )
+    query_status_update("Not Active")
+elif st.session_state.quick_options_status == "Failure":
+    st.toast("Report failed to generate", icon="❌")
+    query_status_update("Not Active")
 
 
 

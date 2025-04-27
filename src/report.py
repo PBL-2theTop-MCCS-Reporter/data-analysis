@@ -1,5 +1,4 @@
 import streamlit as st
-from nltk import align
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from docx import Document
 from docx.shared import Pt, Inches
@@ -162,8 +161,8 @@ def pdf_bullet_list(styles, bullet_points):
 
 def create_pdf():
     # Register fonts and font family
-    pdfmetrics.registerFont(TTFont("Montserrat-Light", "./fonts/Montserrat/static/Montserrat-Light.ttf"))
-    pdfmetrics.registerFont(TTFont("Montserrat-Medium", "./fonts/Montserrat/static/Montserrat-Medium.ttf"))
+    pdfmetrics.registerFont(TTFont("Montserrat-Light", "src/fonts/Montserrat/static/Montserrat-Light.ttf"))
+    pdfmetrics.registerFont(TTFont("Montserrat-Medium", "src/fonts/Montserrat/static/Montserrat-Medium.ttf"))
 
     registerFontFamily("Montserrat", normal="Montserrat-Light", bold="Montserrat-Medium")
 
