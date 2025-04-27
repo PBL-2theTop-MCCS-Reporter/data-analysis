@@ -13,13 +13,14 @@ def get_img_as_base64(file):
 
 header_img = get_img_as_base64("images/MCCS-header.png")
 
+# style = f"""
+# <style>
+# [data-testid="stHeader"] {{
+#     background-image: url("data:image/png;base64,{header_img}");
+#     background-size: cover;
+# }}
 style = f"""
 <style>
-[data-testid="stHeader"] {{
-    background-image: url("data:image/png;base64,{header_img}");
-    background-size: cover;
-}}
-
 [data-testid="stForm"] {{
     background-color: rgb(250,250,250);
     border: none;
