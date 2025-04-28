@@ -6,7 +6,6 @@ import seaborn as sns
 import plotly.express as px
 import os
 from langchain_ollama import OllamaLLM
-from pandasai import SmartDataframe
 import pyarrow.parquet as pq
 import sys
 
