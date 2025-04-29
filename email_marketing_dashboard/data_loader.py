@@ -3,12 +3,16 @@ import os
 
 def load_data():
     """Load all relevant CSV files and return as structured dictionary"""
+
+    
+
     # Get the directory where the current script is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up one level to the project root
     project_root = os.path.dirname(current_dir)
     # Construct the path to data directory
     base_path = os.path.join(project_root, "data", "convertedcsv")
+
     
     data = {
         'summary': {},
@@ -143,12 +147,15 @@ def get_performance_vs_previous(data):
 
 def load_data_simple():
     """Simple version that returns just the three main dataframes"""
+
+=======
     # Get the directory where the current script is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up one level to the project root
     project_root = os.path.dirname(current_dir)
     # Construct the path to data directory
     base_path = os.path.join(project_root, "data", "convertedcsv")
+
     
     # Load delivery data
     delivery_daily = pd.read_csv(os.path.join(base_path, 'Advertising_Email_Deliveries', 'Advertising_Email_Deliveries.xlsx-Email_Deliveries_Delivery_Timel.csv'))

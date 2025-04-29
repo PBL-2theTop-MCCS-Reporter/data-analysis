@@ -1,5 +1,10 @@
 data/rawdata/MCCS_RetailData.parquet
 data/convertedcsv/MCCS_RetailData.csv
-venv/
+
 __pycache__/
 *.pyc
+.env
+.DS_Store
+.idea
+.venv
+

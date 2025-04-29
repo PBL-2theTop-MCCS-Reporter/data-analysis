@@ -274,3 +274,50 @@ def plot_heatmap(data, x_axis, y_axis, value_col, title=None):
     )
     
     return fig
+
+def plot_weekly_social_media_data(data, metric, title):
+
+    df = pd.DataFrame(data)
+    print(df)
+
+    # 使用 Plotly 绘制折线图
+    fig = px.line(
+        df,
+        x = metric[1],
+        y = metric[2],
+        color = metric[0],  # 按星期分类
+        title = title
+    )
+
+    # 设置图表格式
+    fig.update_layout(
+        xaxis_title = metric[1],
+        yaxis_title = metric[2],
+        legend_title = metric[0],
+        xaxis = dict(tickmode="array", tickangle=45)  # 旋转 X 轴刻度，避免重叠
+    )
+
+    return fig
+
+def plot_basic_metrics(id_name, data, metric, title):
+    # 只保留选中的列
+    df_long = data.melt(id_vars=id_name, value_vars=metric, var_name="Metric", value_name="Value")
+
+    # 绘制柱状图
+    fig = px.bar(
+        df_long,
+        x=id_name,
+        y="Value",
+        color="Metric",  # 不同指标用不同颜色
+        barmode="group",  # 分组柱状图
+        title=title
+    )
+
+    # 更新坐标轴标签
+    fig.update_layout(
+        xaxis_title=id_name,
+        yaxis_title="Value",
+        legend_title="Metric"
+    )
+
+    return fig

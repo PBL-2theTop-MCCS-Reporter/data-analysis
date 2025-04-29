@@ -5,16 +5,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import os
-from data_loader import load_data
+from langchain_ollama import OllamaLLM
+import pyarrow.parquet as pq
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import custom modules
 from data_loader import load_data, get_email_funnel_data, get_performance_vs_previous
 from visualizations import (
-    plot_metrics_over_time, plot_email_funnel, plot_domain_comparison,
-    plot_weekly_pattern, plot_audience_performance, plot_campaign_performance,
+    plot_metrics_over_time, plot_email_funnel, plot_domain_comparison, plot_basic_metrics,
+    plot_weekly_pattern, plot_audience_performance, plot_campaign_performance, plot_weekly_social_media_data,
     plot_heatmap
 )
 from llm_insights import generate_insights, configure_openai_client
+from prompts import email_key_performance_response, email_performance_over_time_response, social_media_key_performance_response, email_domain_day_of_week_response, email_final_result_response, social_media_posts_over_time_response, social_media_hourly_engagements_response, social_media_final_result_response
+from raw_data_loader import (load_raw_data, get_engagement_summary,get_post_engagement_scorecard_ac, get_media_type,
+                             get_post_performance_summary, get_total_engagement_metrics_on, get_social_engagement_by_time_of)
+
+from PDF_generator_util import generate_pdf, show_pdf
 
 # Page configuration
 st.set_page_config(
@@ -29,18 +38,44 @@ st.set_page_config(
 def get_data():
     return load_data()
 
+@st.cache_data
+def get_raw_data():
+    return load_raw_data()
+
+
 try:
     data = get_data()
+    sm_data = get_raw_data()
 except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
+
+# 初始化 session_state 的字段
+if 'email_key_performance_response' not in st.session_state:
+    st.session_state.email_key_performance_response = ""
+if 'email_performance_over_time_response' not in st.session_state:
+    st.session_state.email_performance_over_time_response = ""
+if 'email_domain_day_of_week_response' not in st.session_state:
+    st.session_state.email_domain_day_of_week_response = ""
+if 'social_media_posts_over_time_response' not in st.session_state:
+    st.session_state.social_media_posts_over_time_response = ""
+if 'social_media_key_performance_response' not in st.session_state:
+    st.session_state.social_media_key_performance_response = ""
+if 'social_media_hourly_engagements_response' not in st.session_state:
+    st.session_state.social_media_hourly_engagements_response = ""
+if 'email_final_text' not in st.session_state:
+    st.session_state.email_final_text = ""
+if 'social_media_final_text' not in st.session_state:
+    st.session_state.social_media_final_text = ""
 
 # Sidebar
 st.sidebar.title("📊 MCCS Email Analytics")
 page = st.sidebar.radio(
     "Navigation", 
-    ["Dashboard", "Delivery Analysis", "Engagement Analysis", "Campaign Analysis", "Audience Analysis", "LLM Insights"]
+    ["Dashboard", "Delivery Analysis", "Engagement Analysis", "Campaign Analysis", "Audience Analysis", "Social Media Dashboard", "LLM Insights","AI Data Analysis Agent"]
 )
+
+llm = OllamaLLM(model="llama3:8b")
 
 # Dashboard page
 if page == "Dashboard":
@@ -65,12 +100,36 @@ if page == "Dashboard":
         open_rate = data['summary']['open_rate']['Open Rate'].iloc[0]
         open_rate_diff = data['summary']['open_rate']['Diff'].iloc[0]
         st.metric("Open Rate", f"{open_rate:.2%}", open_rate_diff)
-    
+
     with col4:
         click_rate = data['summary']['click_to_open_rate']['Click To Open Rate'].iloc[0]
         click_rate_diff = data['summary']['click_to_open_rate']['Diff'].iloc[0]
         st.metric("Click to Open Rate", f"{click_rate:.2%}", click_rate_diff)
-    
+
+    st.write("AI response")
+
+    col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+    with col1:
+        if st.button("Start AI Analysis", key="button_0"):
+            with st.spinner("AI processing..."):
+                email_key_performance = {
+                    "total_sends": sends,
+                    "delivery": deliveries,
+                    "open_rate": open_rate,
+                    "click_to_open_rate": click_rate,
+                    "diff_total_sends": sends_diff,
+                    "diff_delivery": deliveries_diff,
+                    "diff_open_rate": open_rate_diff,
+                    "diff_click_to_open_rate": click_rate_diff
+                }
+                st.session_state.email_key_performance_response = email_key_performance_response(email_key_performance, 6)
+    with col2:
+        if st.button("❌ Reset", key="button_clear_0"):
+            st.session_state.email_key_performance_response = ""
+
+    if st.session_state.email_key_performance_response:
+        st.write(st.session_state.email_key_performance_response)
+
     # Email funnel
     st.subheader("Email Marketing Funnel")
     funnel_data = get_email_funnel_data(data)
@@ -95,7 +154,23 @@ if page == "Dashboard":
                 ),
                 use_container_width=True
             )
-    
+
+            col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+
+            with col1:
+                if st.button("Start AI Analysis", key="button_1"):
+                    with st.spinner("AI processing..."):
+                        feature = ["Sends", "Deliveries", "Daily"]
+                        print(data['time_series']['delivery'][feature])
+                        st.session_state.email_performance_over_time_response = email_performance_over_time_response(
+                            data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
+            with col2:
+                if st.button("❌ Reset", key="button_clear_1"):
+                    st.session_state.email_performance_over_time_response = ""
+
+            if st.session_state.email_performance_over_time_response:
+                st.write(st.session_state.email_performance_over_time_response)
+
     with ts_tabs[1]:  # Engagement Metrics
         engagement_metrics = st.multiselect(
             "Select engagement metrics to display:",
@@ -133,6 +208,41 @@ if page == "Dashboard":
                 data['breakdowns']['engagement_by_weekday']
             ),
             use_container_width=True
+        )
+
+    col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+
+    with col1:
+        if st.button("Start AI Analysis", key="button_2"):
+            with st.spinner("AI processing..."):
+                st.session_state.email_domain_day_of_week_response = email_domain_day_of_week_response(data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'], data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
+    with col2:
+        if st.button("❌ Reset", key="button_clear_2"):
+            st.session_state.email_domain_day_of_week_response = ""
+
+    if st.session_state.email_domain_day_of_week_response:
+        st.write(st.session_state.email_domain_day_of_week_response)
+
+    if st.button("📄 Generate & Preview PDF"):
+        final_report = email_final_result_response(st.session_state.email_key_performance_response,
+                                                   st.session_state.email_performance_over_time_response,
+                                                   st.session_state.email_domain_day_of_week_response)
+
+        st.session_state.email_final_text = st.session_state.email_key_performance_response + "\n\n" + st.session_state.email_performance_over_time_response + "\n\n" + st.session_state.email_domain_day_of_week_response + "\n\n" + "Assessment" + "\n\n" + final_report
+
+    if  st.session_state.email_final_text:
+        pdf_buffer = generate_pdf( st.session_state.email_final_text)
+
+        # PDF 预览
+        st.subheader("📄 PDF Preview：")
+        show_pdf(pdf_buffer)
+
+        # 下载按钮
+        st.download_button(
+            label="📥 Download PDF",
+            data=pdf_buffer,
+            file_name="ai_report.pdf",
+            mime="application/pdf"
         )
 
 # Delivery Analysis page
@@ -365,6 +475,193 @@ elif page == "Audience Analysis":
     else:
         st.info("Audience data is not available in the provided files.")
 
+# Dashboard page
+elif page == "Social Media Dashboard":
+    st.title("📧 Social Media Marketing Dashboard")
+
+    # Overview metrics
+    st.subheader("Posts Engagement Summary")
+
+    # Summary metrics layout
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    engagement_summary_data = get_engagement_summary(sm_data)
+    post_performance_summary = get_post_performance_summary(sm_data)
+    with col1:
+        brand_posts = post_performance_summary["Brand Posts"].iloc[0]
+        brand_posts_diff = post_performance_summary['Change in Volume of Published Messages'].iloc[0]
+        brand_posts_diff_rate = post_performance_summary['% change in Volume of Published Messages'].iloc[0]
+        st.metric("Brand Posts", f"{int(brand_posts):,}", f"{brand_posts_diff_rate}({int(brand_posts_diff)})")
+
+    with col2:
+        total_engagements= post_performance_summary["Total Engagements (SUM)"].iloc[0]
+        total_engagements_diff = post_performance_summary['Change in Total Engagements'].iloc[0]
+        total_engagements_diff_rate = post_performance_summary['% change in Total Engagements'].iloc[0]
+        st.metric("Total Engagements", f"{int(total_engagements):,}", f"{brand_posts_diff_rate}({int(total_engagements_diff)})")
+
+    with col3:
+        post_like_and_reaction = engagement_summary_data["Post Likes And Reactions (SUM)"].iloc[0]
+        post_like_and_reaction_diff = engagement_summary_data['Change in Post Likes And Reactions'].iloc[0]
+        post_like_and_reaction_diff_rate = engagement_summary_data['% change in Post Likes And Reactions'].iloc[0]
+        st.metric("Post Likes And Reactions", f"{int(post_like_and_reaction):,}", f"{post_like_and_reaction_diff_rate}({int(post_like_and_reaction_diff)})")
+
+    with col4:
+        posts_shares = engagement_summary_data['Post Shares (SUM)'].iloc[0]
+        posts_shares_diff = engagement_summary_data['Change in Post Shares'].iloc[0]
+        posts_shares_diff_rate = engagement_summary_data['% change in Post Shares'].iloc[0]
+        st.metric("Post Shares", f"{int(posts_shares):,}", f"{posts_shares_diff_rate}({int(posts_shares_diff)})")
+
+    with col5:
+        post_comments = engagement_summary_data['Post Comments (SUM)'].iloc[0]
+        post_comments_diff = engagement_summary_data['Change in Post Comments'].iloc[0]
+        post_comments_diff_rate = engagement_summary_data['% change in Post Comments'].iloc[0]
+        st.metric("Post Comments", f"{int(post_comments):,}", f"{post_comments_diff_rate}({int(post_comments_diff)})")
+
+    st.write("AI response")
+
+    # 用户反馈输入框
+    user_feedback = st.text_input("If you have any idea or advice with my response, Please feel free to come up with!")
+
+    col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+
+    with col1:
+        if st.button("Start AI Analysis", key="button_3"):
+            with st.spinner("AI processing..."):
+                social_media_key_performance = {
+                    "brand_posts": brand_posts,
+                    "total_engagements": total_engagements,
+                    "post_like_and_reaction": post_like_and_reaction,
+                    "posts_shares": posts_shares,
+                    "post_comments": post_comments,
+                    "brand_posts_diff": brand_posts_diff,
+                    "total_engagements_diff": total_engagements_diff,
+                    "post_like_and_reaction_diff": post_like_and_reaction_diff,
+                    "posts_shares_diff": posts_shares_diff,
+                    "post_comments_diff": post_comments_diff
+                }
+                st.session_state.social_media_key_performance_response = social_media_key_performance_response(social_media_key_performance, user_feedback, 5)
+    with col2:
+        if st.button("❌ Reset", key="button_clear_3"):
+            st.session_state.social_media_key_performance_response = ""
+
+    if st.session_state.social_media_key_performance_response:
+        st.write(st.session_state.social_media_key_performance_response)
+
+
+
+    total_engagement_metrics_on = get_total_engagement_metrics_on(sm_data)
+    social_engagement_by_time_of = get_social_engagement_by_time_of(sm_data)
+    post_engagement_scorecard_ac = get_post_engagement_scorecard_ac(sm_data)
+    media_type_data = get_media_type(sm_data)
+
+    st.subheader("Performance Over Time")
+    ps_tabs = st.tabs(["Posts Metrics", "Channel Metrics", "Media Type Metrics"])
+
+    with ps_tabs[0]:
+        posts_metrics = st.multiselect(
+            "Select posts metrics to display:",
+            options=["Total Engagements", "Post Likes And Reactions", "Post Comments", "Post Shares", "Post Reach", "Estimated Clicks"],
+            default=["Total Engagements", "Post Likes And Reactions"]
+        )
+        st.plotly_chart(
+            plot_metrics_over_time(
+                total_engagement_metrics_on,
+                posts_metrics,
+                "Posts Metrics Over Time"
+            ))
+
+    with ps_tabs[1]:
+        channel_metrics = st.multiselect(
+            "Select channel metrics to display:",
+            options=["Total Engagements", "Post Likes And Reactions", "Post Comments", "Post Shares", "Post Reach",
+                     "Estimated Clicks"],
+            default=["Total Engagements", "Post Likes And Reactions"]
+        )
+        st.plotly_chart(
+            plot_basic_metrics(
+                post_engagement_scorecard_ac.columns[0],
+                post_engagement_scorecard_ac,
+                channel_metrics,
+                "Channel Metrics "
+            ))
+
+    with ps_tabs[2]:
+        media_type_metrics = st.multiselect(
+            "Select Media Type metrics to display:",
+            options=["Total Engagements", "Post Likes And Reactions", "Post Comments", "Post Shares", "Post Reach",
+                     "Volume of Published Messages"],
+            default=["Total Engagements", "Post Likes And Reactions"]
+        )
+        st.plotly_chart(
+            plot_basic_metrics(
+                media_type_data.columns[0],
+                media_type_data,
+                media_type_metrics,
+                "Media Type Metrics "
+            ))
+
+    st.write("AI response")
+
+    col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+
+    with col1:
+        if st.button("Start AI Analysis", key="button_4"):
+            with st.spinner("AI processing..."):
+                st.session_state.social_media_posts_over_time_response = social_media_posts_over_time_response(
+                    total_engagement_metrics_on)
+    with col2:
+        if st.button("❌ Reset", key="button_clear_4"):
+            st.session_state.social_media_posts_over_time_response = ""
+
+    if st.session_state.social_media_posts_over_time_response:
+        st.write(st.session_state.social_media_posts_over_time_response)
+
+    st.plotly_chart(
+        plot_weekly_social_media_data(
+            social_engagement_by_time_of,
+            social_engagement_by_time_of.columns,
+            "Total Engagements by Time and Day"
+        ))
+
+    st.write("AI response")
+
+    col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
+
+    with col1:
+        if st.button("Start AI Analysis", key="button_5"):
+            with st.spinner("AI processing..."):
+                st.session_state.social_media_hourly_engagements_response = social_media_hourly_engagements_response(
+                    social_engagement_by_time_of)
+    with col2:
+        if st.button("❌ Reset", key="button_clear_5"):
+            st.session_state.social_media_hourly_engagements_response = ""
+
+    if st.session_state.social_media_hourly_engagements_response:
+        st.write(st.session_state.social_media_hourly_engagements_response)
+
+    if st.button("📄 Generate & Preview PDF"):
+        final_report = social_media_final_result_response(st.session_state.social_media_hourly_engagements_response,
+                                                   st.session_state.social_media_posts_over_time_response,
+                                                   st.session_state.social_media_key_performance_response)
+
+        st.session_state.social_media_final_text = st.session_state.social_media_key_performance_response + "\n\n" + st.session_state.social_media_posts_over_time_response + "\n\n" + st.session_state.social_media_hourly_engagements_response + "\n\n" + "Assessment" + "\n\n" + final_report
+
+    if st.session_state.social_media_final_text:
+        pdf_buffer = generate_pdf(st.session_state.social_media_final_text)
+
+        # PDF 预览
+        st.subheader("📄 PDF Preview：")
+        show_pdf(pdf_buffer)
+
+        # 下载按钮
+        st.download_button(
+            label="📥 Download PDF",
+            data=pdf_buffer,
+            file_name="ai_report.pdf",
+            mime="application/pdf"
+        )
+
+
 # LLM Insights page
 elif page == "LLM Insights":
     st.title("🤖 AI-Generated Insights")
@@ -411,6 +708,242 @@ elif page == "LLM Insights":
     else:
         st.warning("Please enter your OpenAI API key in the sidebar to generate AI insights.")
         st.info("The LLM will analyze your email marketing data and provide actionable insights.")
+
+elif page == "AI Data Analysis Agent":
+    st.title("📊 Report Generator")
+    if st.button("Start Generate"):
+        progress = st.progress(0)
+        status_text = st.empty()
+
+        # Step 1: 数据预处理
+        status_text.text("Step 1/8: Analyzing key metrics comparisons from two months before and after the email data...")
+        progress.progress(0.125)
+        sends = data['summary']['sends']['Sends'].iloc[0]
+        sends_diff = data['summary']['sends']['Diff'].iloc[0]
+
+        deliveries = data['summary']['deliveries']['Deliveries'].iloc[0]
+        deliveries_diff = data['summary']['deliveries']['Diff'].iloc[0]
+
+        open_rate = data['summary']['open_rate']['Open Rate'].iloc[0]
+        open_rate_diff = data['summary']['open_rate']['Diff'].iloc[0]
+
+        click_rate = data['summary']['click_to_open_rate']['Click To Open Rate'].iloc[0]
+        click_rate_diff = data['summary']['click_to_open_rate']['Diff'].iloc[0]
+
+        email_key = {
+            "total_sends": sends,
+            "delivery": deliveries,
+            "open_rate": open_rate,
+            "click_to_open_rate": click_rate,
+            "diff_total_sends": sends_diff,
+            "diff_delivery": deliveries_diff,
+            "diff_open_rate": open_rate_diff,
+            "diff_click_to_open_rate": click_rate_diff
+        }
+        email_key_performance = email_key_performance_response(email_key, 6)
+
+        # Step 2: 模型分析
+        status_text.text("Step 2/8: Analyzing monthly email delivery and send performance...")
+        progress.progress(0.25)
+
+        feature = ["Sends", "Deliveries", "Daily"]
+
+        email_performance_over_time = email_performance_over_time_response(
+            data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
+
+        # Step 3: 图表生成
+        status_text.text("Step 3/8: Analyzing email engagement by address selection and day of the week...")
+        progress.progress(0.375)
+
+        email_domain_day_of_week = email_domain_day_of_week_response(
+            data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'],
+            data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
+
+        # Step 4: 结论总结
+        status_text.text("Step 4/8: Writing the conclusion of the email analysis report...")
+        progress.progress(0.5)
+
+        email_final_report = email_final_result_response(email_key_performance,
+                                                   email_performance_over_time,
+                                                   email_domain_day_of_week)
+
+
+        # Step 1: 数据预处理
+        status_text.text("Step 5/8: Analyzing key metrics comparisons from two months before and after the social media post...")
+        progress.progress(0.625)
+
+        engagement_summary_data = get_engagement_summary(sm_data)
+        post_performance_summary = get_post_performance_summary(sm_data)
+
+        brand_posts = post_performance_summary["Brand Posts"].iloc[0]
+        brand_posts_diff = post_performance_summary['Change in Volume of Published Messages'].iloc[0]
+
+        total_engagements = post_performance_summary["Total Engagements (SUM)"].iloc[0]
+        total_engagements_diff = post_performance_summary['Change in Total Engagements'].iloc[0]
+
+        post_like_and_reaction = engagement_summary_data["Post Likes And Reactions (SUM)"].iloc[0]
+        post_like_and_reaction_diff = engagement_summary_data['Change in Post Likes And Reactions'].iloc[0]
+
+        posts_shares = engagement_summary_data['Post Shares (SUM)'].iloc[0]
+        posts_shares_diff = engagement_summary_data['Change in Post Shares'].iloc[0]
+
+        post_comments = engagement_summary_data['Post Comments (SUM)'].iloc[0]
+        post_comments_diff = engagement_summary_data['Change in Post Comments'].iloc[0]
+
+        social_media_key = {
+            "brand_posts": brand_posts,
+            "total_engagements": total_engagements,
+            "post_like_and_reaction": post_like_and_reaction,
+            "posts_shares": posts_shares,
+            "post_comments": post_comments,
+            "brand_posts_diff": brand_posts_diff,
+            "total_engagements_diff": total_engagements_diff,
+            "post_like_and_reaction_diff": post_like_and_reaction_diff,
+            "posts_shares_diff": posts_shares_diff,
+            "post_comments_diff": post_comments_diff
+        }
+
+        social_media_key_performance = social_media_key_performance_response(social_media_key, "", 5)
+
+        # Step 2: 模型分析
+        status_text.text("Step 6/8: Analyzing all metrics of monthly social media posts...")
+        progress.progress(0.75)
+
+        total_engagement_metrics_on = get_total_engagement_metrics_on(sm_data)
+
+        social_media_posts_over_time = social_media_posts_over_time_response(
+            total_engagement_metrics_on)
+
+        # Step 3: 图表生成
+        status_text.text("Step 7/8: Analyzing daily engagement data from social media...")
+        progress.progress(0.875)
+
+        social_engagement_by_time_of = get_social_engagement_by_time_of(sm_data)
+
+        social_media_hourly_engagements = social_media_hourly_engagements_response(
+            social_engagement_by_time_of)
+
+        # Step 4: 结论总结
+        status_text.text("Step 8/8: Writing the conclusion of the social media analysis report...")
+        progress.progress(1.0)
+
+        social_media_final_report = social_media_final_result_response(social_media_key_performance,
+                                                         social_media_posts_over_time,
+                                                         social_media_hourly_engagements)
+
+        if email_final_report and social_media_final_report:
+            st.success("✅ Report generated successfully！🎉")
+
+            pdf_buffer = generate_pdf("Email Assessment" + "\n\n" + email_final_report + "\n\n" + "Social Media Assessment" + "\n\n" + social_media_final_report)
+
+            # PDF 预览
+            st.subheader("📄 PDF Preview：")
+            show_pdf(pdf_buffer)
+
+            # 下载按钮
+            st.download_button(
+                label="📥 Download PDF",
+                data=pdf_buffer,
+                file_name="ai_report.pdf",
+                mime="application/pdf"
+            )
+
+def generate_email_report():
+    sends = data['summary']['sends']['Sends'].iloc[0]
+    sends_diff = data['summary']['sends']['Diff'].iloc[0]
+
+    deliveries = data['summary']['deliveries']['Deliveries'].iloc[0]
+    deliveries_diff = data['summary']['deliveries']['Diff'].iloc[0]
+
+    open_rate = data['summary']['open_rate']['Open Rate'].iloc[0]
+    open_rate_diff = data['summary']['open_rate']['Diff'].iloc[0]
+
+    click_rate = data['summary']['click_to_open_rate']['Click To Open Rate'].iloc[0]
+    click_rate_diff = data['summary']['click_to_open_rate']['Diff'].iloc[0]
+
+    email_key = {
+        "total_sends": sends,
+        "delivery": deliveries,
+        "open_rate": open_rate,
+        "click_to_open_rate": click_rate,
+        "diff_total_sends": sends_diff,
+        "diff_delivery": deliveries_diff,
+        "diff_open_rate": open_rate_diff,
+        "diff_click_to_open_rate": click_rate_diff
+    }
+    email_key_performance = email_key_performance_response(email_key, 6)
+
+    # Step 2: 模型分析
+    feature = ["Sends", "Deliveries", "Daily"]
+
+    email_performance_over_time = email_performance_over_time_response(
+        data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
+
+    # Step 3: 图表生成
+    email_domain_day_of_week = email_domain_day_of_week_response(
+        data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'],
+        data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
+
+    # Step 4: 结论总结
+    email_final_report = email_final_result_response(email_key_performance,
+                                                     email_performance_over_time,
+                                                     email_domain_day_of_week)
+    return email_final_report
+
+def generate_social_media_report():
+    # Step 1: 数据预处理
+    engagement_summary_data = get_engagement_summary(sm_data)
+    post_performance_summary = get_post_performance_summary(sm_data)
+
+    brand_posts = post_performance_summary["Brand Posts"].iloc[0]
+    brand_posts_diff = post_performance_summary['Change in Volume of Published Messages'].iloc[0]
+
+    total_engagements = post_performance_summary["Total Engagements (SUM)"].iloc[0]
+    total_engagements_diff = post_performance_summary['Change in Total Engagements'].iloc[0]
+
+    post_like_and_reaction = engagement_summary_data["Post Likes And Reactions (SUM)"].iloc[0]
+    post_like_and_reaction_diff = engagement_summary_data['Change in Post Likes And Reactions'].iloc[0]
+
+    posts_shares = engagement_summary_data['Post Shares (SUM)'].iloc[0]
+    posts_shares_diff = engagement_summary_data['Change in Post Shares'].iloc[0]
+
+    post_comments = engagement_summary_data['Post Comments (SUM)'].iloc[0]
+    post_comments_diff = engagement_summary_data['Change in Post Comments'].iloc[0]
+
+    social_media_key = {
+        "brand_posts": brand_posts,
+        "total_engagements": total_engagements,
+        "post_like_and_reaction": post_like_and_reaction,
+        "posts_shares": posts_shares,
+        "post_comments": post_comments,
+        "brand_posts_diff": brand_posts_diff,
+        "total_engagements_diff": total_engagements_diff,
+        "post_like_and_reaction_diff": post_like_and_reaction_diff,
+        "posts_shares_diff": posts_shares_diff,
+        "post_comments_diff": post_comments_diff
+    }
+
+    social_media_key_performance = social_media_key_performance_response(social_media_key, "", 5)
+
+    # Step 2: 模型分析
+    total_engagement_metrics_on = get_total_engagement_metrics_on(sm_data)
+
+    social_media_posts_over_time = social_media_posts_over_time_response(
+        total_engagement_metrics_on)
+
+    # Step 3: 图表生成
+    social_engagement_by_time_of = get_social_engagement_by_time_of(sm_data)
+
+    social_media_hourly_engagements = social_media_hourly_engagements_response(
+        social_engagement_by_time_of)
+
+    # Step 4: 结论总结
+    social_media_final_report = social_media_final_result_response(social_media_key_performance,
+                                                                   social_media_posts_over_time,
+                                                                   social_media_hourly_engagements)
+
+    return social_media_final_report
+
 
 # Footer
 st.sidebar.markdown("---")
