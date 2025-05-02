@@ -1,4 +1,8 @@
+import copy
+from datetime import datetime
+
 import streamlit as st
+from dateutil.relativedelta import relativedelta
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from docx import Document
 from docx.shared import Pt, Inches
@@ -16,14 +20,19 @@ from docx.oxml.ns import qn
 import base64
 import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-#
+from email_marketing_dashboard.functions import generate_email_report, generate_social_media_report
+
 # from email_marketing_dashboard.data_loader import load_data, get_email_funnel_data, get_performance_vs_previous
 
 # Refer to ContentBlock.py for list of useful functions. Use a list within the report_content to activate a bullet list
+# {DateRange} gets replaced with the date range
+# {PrevMonth} gets replaced with the month before the beginning month
+# {TwoPrevMonth} gets replaced with two months before the beginning month
+
 report_content = [
-    ContentBlock("September 2024 MCCS Marketing Analytics Assessment",
+    ContentBlock("{DateRange} MCCS Marketing Analytics Assessment",
                  bold=True,
                  font_size=15,
                  color="#24446C",
@@ -38,13 +47,13 @@ report_content = [
                  bold=True,
                  new_line=True),
     [
-         ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for September was "),
+         ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for {DateRange} was "),
          ContentBlock("38.08%", bold=True, color="#000071"),
-         ContentBlock(" (32.61% in August, 30.10% in July)", new_line=True),
+         ContentBlock(" (32.61% in {PrevMonth}, 30.10% in {TwoPrevMonth})", new_line=True),
 
-         ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for September was "),
+         ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for {DateRange} was "),
          ContentBlock("0.65%", bold=True, color="#000071"),
-         ContentBlock(" (0.45% in August, 0.53% in July)", new_line=True),
+         ContentBlock(" (0.45% in {PrevMonth}, 0.53% in {TwoPrevMonth})", new_line=True),
 
          ContentBlock("Performance by email blast (highlights):", new_line=True),
 
@@ -110,8 +119,28 @@ report_content = [
     ],
     ContentBlock("Assessments",
                  bold=True,
-                 new_paragraph=True),
+                 new_line=True),
+
 ]
+
+def parse_time(begin, end):
+    begin_dt = datetime.strptime(begin, "%b %Y")
+    end_dt = datetime.strptime(end, "%b %Y")
+
+    # Build replacement strings
+    if begin_dt == end_dt:
+        date_range = begin_dt.strftime("%B %Y")
+    else:
+        date_range = f"{begin_dt.strftime('%B')} - {end_dt.strftime('%B %Y')}"
+
+    prev_month = (begin_dt - relativedelta(months=1)).strftime("%B")
+    two_prev_month = (begin_dt - relativedelta(months=2)).strftime("%B")
+    return date_range, prev_month, two_prev_month
+
+def replace_placeholders(block, date_range, prev_month, two_prev_month):
+    block.text = block.text.replace("{DateRange}", date_range)
+    block.text = block.text.replace("{PrevMonth}", prev_month)
+    block.text = block.text.replace("{TwoPrevMonth}", two_prev_month)
 
 def content_block_to_formatted_text(block):
     tagged = block.text
@@ -126,40 +155,117 @@ def content_block_to_formatted_text(block):
     return tagged
 
 def pdf_bullet_list(styles, bullet_points):
-    bullet_list = []
+    bullet_items = []
     tagged = ""
     indent_block = False
+
     for bullet in bullet_points:
-        tagged = tagged + content_block_to_formatted_text(bullet)
+        tagged += content_block_to_formatted_text(bullet)
         if bullet.indent:
             indent_block = True
-        if bullet.new_paragraph:
+
+        if bullet.new_paragraph or bullet.new_line:
             paragraph = Paragraph(tagged, styles["Normal"])
-            if indent_block:
-                bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
-            else:
-                bullet_list.append(ListItem(paragraph, bulletColor='black'))
-            bullet_list.append(Spacer(1, 6))
-            tagged = ""
-            indent_block = False
-        elif bullet.new_line:
-            paragraph = Paragraph(tagged, styles["Normal"])
-            if indent_block:
-                bullet_list.append(ListItem(paragraph, bulletColor='black', leftIndent = 36))
-            else:
-                bullet_list.append(ListItem(paragraph, bulletColor='black'))
+            item = ListItem(paragraph, bulletColor='black',
+                            leftIndent=36 if indent_block else 18)
+            bullet_items.append(item)
             tagged = ""
             indent_block = False
 
     return ListFlowable(
-        bullet_list,
+        bullet_items,
         bulletType="bullet",
         bulletFontName="Montserrat-Medium",
         bulletFontSize=10,
         spaceBefore=12
     )
 
-def create_pdf():
+def create_pdf(beginning_month, ending_month):
+    # Get email and social media using Ollama (MAKE SURE OLLAMA IS RUNNING)
+    # print(generate_email_report())
+    # print("===========================================================================================================================")
+    # print(generate_social_media_report())
+    # print("===========================================================================================================================")
+    email_report = """
+1. To boost overall email performance, Marketing will optimize subject lines and A/B test different options to increase open rates. Additionally, regular cleaning and purging of the email list is crucial to maintain a healthy list and improve delivery rates.
+2. Marketing will capitalize on high-engagement days by amplifying specific content or campaigns that drove high engagement during peak days, which account for 40.7% of total sends.
+3. To improve email marketing performance, Marketing will optimize email content for low-performing domains like aol.com and leverage best-performing weekdays like Friday for maximum impact, with the highest sends (304,410) and opens (96,472).
+    """
+
+    social_media_report = """
+1. The social media campaign's engagement levels vary across different time slots and days of the week, with the most active time slot being 19:00. It is crucial to optimize the content strategy for peak engagement hours by leveraging the audience's preferences for interactive content such as polls, questions, or giveaways.
+    - Evidence: The most active time slot is 19:00, with an average engagement of 711.14.
+
+2. With Thursday having the highest total engagement at 10220, it is essential to develop content strategies that cater to this day specifically. This could involve sharing more engaging and informative content such as educational posts, news updates, or industry insights, which are likely to resonate with the audience on weekdays.
+    - Evidence: Thursday has the highest total engagement at 10220, indicating a strong audience response to content shared on this day.
+
+3. To boost social media engagement, it is necessary to focus on creating high-quality, relevant, and diverse content that resonates with the audience. This can be achieved by asking thought-provoking questions, sharing user-generated content, or hosting social media contests that drive brand loyalty and advocacy.
+    - Evidence: The provided social media marketing data shows a decline in engagement metrics (Posts, Total Engagements, Post Likes and Reactions) despite an increase in post shares and comments.
+    
+    """
+    # Process raw output
+    assessments = email_report.split("\n")
+    cleaned_assessments = []
+    for assessment in assessments:
+        cleaned_assessment = assessment.partition(".")[2].strip()
+        if len(cleaned_assessment.strip()) > 0:
+            cleaned_assessments.append(cleaned_assessment)
+
+    social_media_findings = social_media_report.split("\n\n")
+    cleaned_social_media_findings = []
+    for finding in social_media_findings:
+        if len(finding.strip()) > 0:
+            cleaned_finding = finding.partition(".")[2].strip()
+            parts = cleaned_finding.split("\n")
+            if len(parts) == 2:
+                cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
+                cleaned_social_media_findings.append(cleaned_line)
+            else:
+                cleaned_social_media_findings.append(cleaned_finding)
+
+    # Turn it into content blocks
+    assessments_content = []
+    for i, assessment in enumerate(cleaned_assessments):
+        if i == len(cleaned_assessments) - 1:
+            content_block = ContentBlock(assessment, new_paragraph=True)
+        else:
+            content_block = ContentBlock(assessment, new_line=True)
+        assessments_content.append(content_block)
+
+    social_media_content = []
+    for i, finding in enumerate(cleaned_social_media_findings):
+        if i == len(cleaned_social_media_findings) - 1:
+            content_block = ContentBlock(finding, new_paragraph=True)
+        else:
+            content_block = ContentBlock(finding, new_line=True)
+        social_media_content.append(content_block)
+
+    # Build the report using the existing template + new Ollama Information
+    current_report = copy.deepcopy(report_content)
+    current_report.append(assessments_content)
+    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
+                 bold=True,
+                 font_size=15,
+                 color="#24446C",
+                 underline=True,
+                 alignment=Alignment.CENTER,
+                 new_paragraph=True)),
+    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report.append(social_media_content),
+    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+
     # Register fonts and font family
     pdfmetrics.registerFont(TTFont("Montserrat-Light", "src/fonts/Montserrat/static/Montserrat-Light.ttf"))
     pdfmetrics.registerFont(TTFont("Montserrat-Medium", "src/fonts/Montserrat/static/Montserrat-Medium.ttf"))
@@ -192,11 +298,23 @@ def create_pdf():
         leftIndent=36,
     )
 
-    # Process through report_content list and inject reportlab paragraphs into content_list
+    # Get month strings for replacement
+    date_range, prev_month, two_prev_month = parse_time(beginning_month, ending_month)
+
+    # Replace strings
+    for item in current_report:
+        if isinstance(item, ContentBlock):
+            replace_placeholders(item, date_range, prev_month, two_prev_month)
+        elif isinstance(item, list):
+            for block in item:
+                if isinstance(block, ContentBlock):
+                    replace_placeholders(block, date_range, prev_month, two_prev_month)
+
+    # Process through current_report list and inject reportlab paragraphs into content_list
     content_list = []
     tagged = ""
     indent_block = False
-    for block in report_content:
+    for block in current_report:
         if isinstance(block, ContentBlock):
             tagged = tagged + content_block_to_formatted_text(block)
             if block.indent:
@@ -223,6 +341,7 @@ def create_pdf():
         elif isinstance(block, list):
             bullet_list = pdf_bullet_list(styles, block)
             content_list.append(bullet_list)
+            content_list.append(Spacer(1, 12))
 
     # Use content list to build a doc
     doc.build(content_list)

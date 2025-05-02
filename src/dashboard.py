@@ -83,14 +83,12 @@ def quick_options_status_update(new_state):
     st.session_state.quick_options_status = new_state
     st.session_state.query_status = "Not Active"
 
-
 def query_status_update(new_state):
     st.session_state.query_status = new_state
     st.session_state.quick_options_status = "Not Active"
 
-
 def generate_report():
-    pdf_buffer = create_pdf()
+    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1])
     st.session_state.generated_pdf = pdf_buffer
     doc_buffer = create_doc()
     st.session_state.generated_doc = doc_buffer
