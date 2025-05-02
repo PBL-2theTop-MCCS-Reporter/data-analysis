@@ -34,7 +34,7 @@ sample_parquet_path = 'retail_data_sample.parquet'
 
 if os.path.exists(csv_path):
     print(f"Reading from CSV file: {csv_path}")
-    df = dd.read_csv(csv_path, 
+    df = dd.read_csv(csv_path,
                     assume_missing=True,
                     blocksize="64MB")  # Adjust blocksize as needed
 elif os.path.exists(parquet_path):

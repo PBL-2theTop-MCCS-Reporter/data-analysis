@@ -83,7 +83,7 @@ def load_data():
             # Define file paths
             csv_path = 'data/convertedcsv/MCCS_RetailData.csv'
             parquet_path = 'data/rawdata/MCCS_RetailData.parquet'
-            
+
             # Try to load from CSV first, then Parquet if CSV doesn't exist
             if os.path.exists(csv_path):
                 st.info(f"Loading from CSV file: {csv_path}")
@@ -93,7 +93,7 @@ def load_data():
                 ddf = dd.read_parquet(parquet_path)
             else:
                 raise FileNotFoundError("Could not find retail data in CSV or Parquet format")
-            
+
             # Take a sample for interactive analysis
             # In a real app, you might want to use the full dataset with Dask
             # or implement more sophisticated sampling
@@ -102,7 +102,7 @@ def load_data():
             # Convert date columns - using flexible format detection
             df['SALE_DATE'] = pd.to_datetime(df['SALE_DATE'], errors='coerce')
             df['SALE_DATE_TIME'] = pd.to_datetime(df['SALE_DATE_TIME'], errors='coerce')
-            
+
             # Add derived columns
             df['MONTH'] = df['SALE_DATE'].dt.month
             df['MONTH_NAME'] = df['SALE_DATE'].dt.month_name()
