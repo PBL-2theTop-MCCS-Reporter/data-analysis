@@ -24,6 +24,7 @@ except Exception as e:
     st.stop()
 
 def generate_email_report():
+    print("beginning email report generation")
     sends = data['summary']['sends']['Sends'].iloc[0]
     sends_diff = data['summary']['sends']['Diff'].iloc[0]
 
@@ -63,10 +64,10 @@ def generate_email_report():
     email_final_report = email_final_result_response(email_key_performance,
                                                      email_performance_over_time,
                                                      email_domain_day_of_week)
-    print("==========================================BEGIN GENERATE EMAIL REPORT INFORMATION==========================================")
     return email_final_report
 
 def generate_social_media_report():
+    print("beginning social media report generation")
     # Step 1: 数据预处理
     engagement_summary_data = get_engagement_summary(sm_data)
     post_performance_summary = get_post_performance_summary(sm_data)
@@ -117,5 +118,4 @@ def generate_social_media_report():
     social_media_final_report = social_media_final_result_response(social_media_key_performance,
                                                                    social_media_posts_over_time,
                                                                    social_media_hourly_engagements)
-    print("==========================================BEGIN GENERATE SOCIAL REPORT INFORMATION==========================================")
     return social_media_final_report

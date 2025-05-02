@@ -123,6 +123,71 @@ report_content = [
 
 ]
 
+def add_raw_output_to_report_content(raw_assessments, raw_social_media_report):
+    # Process assessments and social_media_report raw output
+    assessments = raw_assessments.split("\n")
+    cleaned_assessments = []
+    for assessment in assessments:
+        cleaned_assessment = assessment.partition(".")[2].strip()
+        if len(cleaned_assessment.strip()) > 0:
+            cleaned_assessments.append(cleaned_assessment)
+
+    social_media_findings = raw_social_media_report.split("\n\n")
+    cleaned_social_media_findings = []
+    for finding in social_media_findings:
+        if len(finding.strip()) > 0:
+            cleaned_finding = finding.partition(".")[2].strip()
+            parts = cleaned_finding.split("\n")
+            if len(parts) == 2:
+                cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
+                cleaned_social_media_findings.append(cleaned_line)
+            else:
+                cleaned_social_media_findings.append(cleaned_finding)
+
+    # Turn it into content blocks
+    assessments_content = []
+    for i, assessment in enumerate(cleaned_assessments):
+        if i == len(cleaned_assessments) - 1:
+            content_block = ContentBlock(assessment, new_paragraph=True)
+        else:
+            content_block = ContentBlock(assessment, new_line=True)
+        assessments_content.append(content_block)
+
+    social_media_content = []
+    for i, finding in enumerate(cleaned_social_media_findings):
+        if i == len(cleaned_social_media_findings) - 1:
+            content_block = ContentBlock(finding, new_paragraph=True)
+        else:
+            content_block = ContentBlock(finding, new_line=True)
+        social_media_content.append(content_block)
+
+    # Build the report using the existing template + new Ollama Information
+    current_report = copy.deepcopy(report_content)
+    current_report.append(assessments_content)
+    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report.append(social_media_content),
+    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    return current_report
+
 def parse_time(begin, end):
     begin_dt = datetime.strptime(begin, "%b %Y")
     end_dt = datetime.strptime(end, "%b %Y")
@@ -137,10 +202,22 @@ def parse_time(begin, end):
     two_prev_month = (begin_dt - relativedelta(months=2)).strftime("%B")
     return date_range, prev_month, two_prev_month
 
-def replace_placeholders(block, date_range, prev_month, two_prev_month):
-    block.text = block.text.replace("{DateRange}", date_range)
-    block.text = block.text.replace("{PrevMonth}", prev_month)
-    block.text = block.text.replace("{TwoPrevMonth}", two_prev_month)
+def replace_placeholders(current_report, beginning_month, ending_month):
+    # Get month strings for replacement
+    date_range, prev_month, two_prev_month = parse_time(beginning_month, ending_month)
+
+    # Replace strings
+    for item in current_report:
+        if isinstance(item, ContentBlock):
+            item.text = item.text.replace("{DateRange}", date_range)
+            item.text = item.text.replace("{PrevMonth}", prev_month)
+            item.text = item.text.replace("{TwoPrevMonth}", two_prev_month)
+        elif isinstance(item, list):
+            for block in item:
+                if isinstance(block, ContentBlock):
+                    block.text = block.text.replace("{DateRange}", date_range)
+                    block.text = block.text.replace("{PrevMonth}", prev_month)
+                    block.text = block.text.replace("{TwoPrevMonth}", two_prev_month)
 
 def content_block_to_formatted_text(block):
     tagged = block.text
@@ -180,91 +257,12 @@ def pdf_bullet_list(styles, bullet_points):
         spaceBefore=12
     )
 
-def create_pdf(beginning_month, ending_month):
-    # Get email and social media using Ollama (MAKE SURE OLLAMA IS RUNNING)
-    # print(generate_email_report())
-    # print("===========================================================================================================================")
-    # print(generate_social_media_report())
-    # print("===========================================================================================================================")
-    email_report = """
-1. To boost overall email performance, Marketing will optimize subject lines and A/B test different options to increase open rates. Additionally, regular cleaning and purging of the email list is crucial to maintain a healthy list and improve delivery rates.
-2. Marketing will capitalize on high-engagement days by amplifying specific content or campaigns that drove high engagement during peak days, which account for 40.7% of total sends.
-3. To improve email marketing performance, Marketing will optimize email content for low-performing domains like aol.com and leverage best-performing weekdays like Friday for maximum impact, with the highest sends (304,410) and opens (96,472).
-    """
+def create_pdf(beginning_month, ending_month, assessments, social_media_report):
+    # Get current report (combines template + Ollama)
+    current_report = add_raw_output_to_report_content(assessments, social_media_report)
 
-    social_media_report = """
-1. The social media campaign's engagement levels vary across different time slots and days of the week, with the most active time slot being 19:00. It is crucial to optimize the content strategy for peak engagement hours by leveraging the audience's preferences for interactive content such as polls, questions, or giveaways.
-    - Evidence: The most active time slot is 19:00, with an average engagement of 711.14.
-
-2. With Thursday having the highest total engagement at 10220, it is essential to develop content strategies that cater to this day specifically. This could involve sharing more engaging and informative content such as educational posts, news updates, or industry insights, which are likely to resonate with the audience on weekdays.
-    - Evidence: Thursday has the highest total engagement at 10220, indicating a strong audience response to content shared on this day.
-
-3. To boost social media engagement, it is necessary to focus on creating high-quality, relevant, and diverse content that resonates with the audience. This can be achieved by asking thought-provoking questions, sharing user-generated content, or hosting social media contests that drive brand loyalty and advocacy.
-    - Evidence: The provided social media marketing data shows a decline in engagement metrics (Posts, Total Engagements, Post Likes and Reactions) despite an increase in post shares and comments.
-    
-    """
-    # Process raw output
-    assessments = email_report.split("\n")
-    cleaned_assessments = []
-    for assessment in assessments:
-        cleaned_assessment = assessment.partition(".")[2].strip()
-        if len(cleaned_assessment.strip()) > 0:
-            cleaned_assessments.append(cleaned_assessment)
-
-    social_media_findings = social_media_report.split("\n\n")
-    cleaned_social_media_findings = []
-    for finding in social_media_findings:
-        if len(finding.strip()) > 0:
-            cleaned_finding = finding.partition(".")[2].strip()
-            parts = cleaned_finding.split("\n")
-            if len(parts) == 2:
-                cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
-                cleaned_social_media_findings.append(cleaned_line)
-            else:
-                cleaned_social_media_findings.append(cleaned_finding)
-
-    # Turn it into content blocks
-    assessments_content = []
-    for i, assessment in enumerate(cleaned_assessments):
-        if i == len(cleaned_assessments) - 1:
-            content_block = ContentBlock(assessment, new_paragraph=True)
-        else:
-            content_block = ContentBlock(assessment, new_line=True)
-        assessments_content.append(content_block)
-
-    social_media_content = []
-    for i, finding in enumerate(cleaned_social_media_findings):
-        if i == len(cleaned_social_media_findings) - 1:
-            content_block = ContentBlock(finding, new_paragraph=True)
-        else:
-            content_block = ContentBlock(finding, new_line=True)
-        social_media_content.append(content_block)
-
-    # Build the report using the existing template + new Ollama Information
-    current_report = copy.deepcopy(report_content)
-    current_report.append(assessments_content)
-    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
-                 bold=True,
-                 font_size=15,
-                 color="#24446C",
-                 underline=True,
-                 alignment=Alignment.CENTER,
-                 new_paragraph=True)),
-    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
-                                       bold=True,
-                                       font_size=15,
-                                       color="#24446C",
-                                       underline=True,
-                                       alignment=Alignment.CENTER,
-                                       new_paragraph=True)),
-    current_report.append(social_media_content),
-    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
-                                       bold=True,
-                                       font_size=15,
-                                       color="#24446C",
-                                       underline=True,
-                                       alignment=Alignment.CENTER,
-                                       new_paragraph=True)),
+    # Replace all placeholders
+    replace_placeholders(current_report, beginning_month, ending_month)
 
     # Register fonts and font family
     pdfmetrics.registerFont(TTFont("Montserrat-Light", "src/fonts/Montserrat/static/Montserrat-Light.ttf"))
@@ -297,18 +295,6 @@ def create_pdf(beginning_month, ending_month):
         "Indent",
         leftIndent=36,
     )
-
-    # Get month strings for replacement
-    date_range, prev_month, two_prev_month = parse_time(beginning_month, ending_month)
-
-    # Replace strings
-    for item in current_report:
-        if isinstance(item, ContentBlock):
-            replace_placeholders(item, date_range, prev_month, two_prev_month)
-        elif isinstance(item, list):
-            for block in item:
-                if isinstance(block, ContentBlock):
-                    replace_placeholders(block, date_range, prev_month, two_prev_month)
 
     # Process through current_report list and inject reportlab paragraphs into content_list
     content_list = []
@@ -350,7 +336,14 @@ def create_pdf(beginning_month, ending_month):
     buffer.seek(0)
     return buffer
 
-def create_doc():
+def create_doc(beginning_month, ending_month, assessments, social_media_report):
+    # Get current report (combines template + Ollama)
+    current_report = add_raw_output_to_report_content(assessments, social_media_report)
+
+    # Replace all placeholders
+    replace_placeholders(current_report, beginning_month, ending_month)
+
+    # Set up document
     document = Document()
 
     section = document.sections[0]
@@ -392,7 +385,7 @@ def create_doc():
 
     current_line = []
     indent_line = False
-    for item in report_content:
+    for item in current_report:
         if isinstance(item, list):
             bullet_item = []
             for block in item:

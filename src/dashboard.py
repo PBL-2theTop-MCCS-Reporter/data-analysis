@@ -12,6 +12,7 @@ import os
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 import retail_llm_insights
+from email_marketing_dashboard.functions import generate_email_report, generate_social_media_report
 
 load_dotenv()
 
@@ -88,9 +89,29 @@ def query_status_update(new_state):
     st.session_state.quick_options_status = "Not Active"
 
 def generate_report():
-    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1])
+    assessments = generate_email_report()
+    social_media_report = generate_social_media_report()
+    # For testing:
+#     assessments = """
+# 1. To boost overall email performance, Marketing will optimize subject lines and A/B test different options to increase open rates. Additionally, regular cleaning and purging of the email list is crucial to maintain a healthy list and improve delivery rates.
+# 2. Marketing will capitalize on high-engagement days by amplifying specific content or campaigns that drove high engagement during peak days, which account for 40.7% of total sends.
+# 3. To improve email marketing performance, Marketing will optimize email content for low-performing domains like aol.com and leverage best-performing weekdays like Friday for maximum impact, with the highest sends (304,410) and opens (96,472).
+#     """
+#
+#     social_media_report = """
+# 1. The social media campaign's engagement levels vary across different time slots and days of the week, with the most active time slot being 19:00. It is crucial to optimize the content strategy for peak engagement hours by leveraging the audience's preferences for interactive content such as polls, questions, or giveaways.
+#     - Evidence: The most active time slot is 19:00, with an average engagement of 711.14.
+#
+# 2. With Thursday having the highest total engagement at 10220, it is essential to develop content strategies that cater to this day specifically. This could involve sharing more engaging and informative content such as educational posts, news updates, or industry insights, which are likely to resonate with the audience on weekdays.
+#     - Evidence: Thursday has the highest total engagement at 10220, indicating a strong audience response to content shared on this day.
+#
+# 3. To boost social media engagement, it is necessary to focus on creating high-quality, relevant, and diverse content that resonates with the audience. This can be achieved by asking thought-provoking questions, sharing user-generated content, or hosting social media contests that drive brand loyalty and advocacy.
+#     - Evidence: The provided social media marketing data shows a decline in engagement metrics (Posts, Total Engagements, Post Likes and Reactions) despite an increase in post shares and comments.
+#
+#     """
+    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], assessments, social_media_report)
     st.session_state.generated_pdf = pdf_buffer
-    doc_buffer = create_doc()
+    doc_buffer = create_doc(report_time_range[0], report_time_range[1], assessments, social_media_report)
     st.session_state.generated_doc = doc_buffer
 
 def generate_report_with_prompt(prompt):
@@ -109,14 +130,14 @@ def generate_report_with_prompt(prompt):
     st.session_state.generated_pdf = pdf_buffer
 
 current_month = (pd.Timestamp.now() - pd.DateOffset(months=1)).strftime("%Y-%m")
-date_range = pd.date_range(start="2024-08", end="2024-09", freq="MS").strftime("%b %Y").tolist()
+date_range = pd.date_range(start="2024-08", end=current_month, freq="MS").strftime("%b %Y").tolist()
 
 # Page Content
 st.markdown(style, unsafe_allow_html=True)
 st.header("Report Generation Tool")
 st.divider()
 st.write(
-    "Information on effectiveness of digital marketing, sales, Marine Mart reviews, and more can be found here. Data is from 2023 to the present, but data updates may be delayed. ")
+    "Information on effectiveness of digital marketing, sales, Marine Mart reviews, and more can be found here. Data is from 2023 to the present, but data updates may be delayed. THIS MAY TAKE SEVERAL (5 - 10) MINUTES TO GENERATE.")
 
 st.subheader("Quick Report Generation")
 with st.form(key="quick_report_form"):
@@ -128,15 +149,13 @@ with st.form(key="quick_report_form"):
     )
     st.caption(
         "Select a start and end month, inclusive on both ends. (e.g. \"Aug 2024 - Aug 2024\" = Report for August 2024, \"Aug 2024 - Sep 2024\" = Report for both August and September 2024)")
-    # USER INPUT for quick report generation - report type
-    # report_type = st.selectbox(
-    #     "Choose report:",
-    #     ["Executive Report", "Social Media Report", "Email Report", "Comment Report"]
-    # )
     report_type = "report"
 
-    submit_button = st.form_submit_button(label="Generate Report",
-                                          on_click=lambda: quick_options_status_update("Loading"))
+    if st.session_state.quick_options_status == "Loading":
+        submit_button = st.form_submit_button(label="Generate Report", disabled=True)
+    else:
+        submit_button = st.form_submit_button(label="Generate Report",
+                                              on_click=lambda: quick_options_status_update("Loading"))
 
 if st.session_state.quick_options_status == "Loading":
     generate_report()
@@ -165,6 +184,24 @@ elif st.session_state.quick_options_status == "Success":
 elif st.session_state.quick_options_status == "Failure":
     st.toast("Report failed to generate", icon="❌")
     quick_options_status_update("Not Active")
+elif st.session_state.quick_options_status == "Not Active":
+    if st.session_state.generated_pdf != "" and st.session_state.generated_doc != "":
+        if report_time_range[0] == report_time_range[1]:
+            filename = f"{report_time_range[0]} MCCS Marketing Analytics Assessment"
+        else:
+            filename = f"{report_time_range[0]} - {report_time_range[1]} MCCS Marketing Analytics Assessment"
+        st.download_button(
+            label="Get Report as PDF",
+            data=st.session_state.generated_pdf,
+            file_name=filename + ".pdf",
+            mime="application/pdf"
+        )
+        st.download_button(
+            label="Get Report as Word Document",
+            data=st.session_state.generated_doc,
+            file_name=filename + ".docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
 st.subheader("Report Generation by Prompt")
 # USER INPUT for prompt for AI report generation
