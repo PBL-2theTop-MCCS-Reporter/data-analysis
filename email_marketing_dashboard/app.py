@@ -4,10 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
-import os
-from langchain_ollama import OllamaLLM
 import pyarrow.parquet as pq
 import sys
+import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -18,7 +20,7 @@ from visualizations import (
     plot_weekly_pattern, plot_audience_performance, plot_campaign_performance, plot_weekly_social_media_data,
     plot_heatmap
 )
-from llm_insights import generate_insights, configure_openai_client
+from llm_insights import generate_insights
 from prompts import email_key_performance_response, email_performance_over_time_response, social_media_key_performance_response, email_domain_day_of_week_response, email_final_result_response, social_media_posts_over_time_response, social_media_hourly_engagements_response, social_media_final_result_response
 from raw_data_loader import (load_raw_data, get_engagement_summary,get_post_engagement_scorecard_ac, get_media_type,
                              get_post_performance_summary, get_total_engagement_metrics_on, get_social_engagement_by_time_of)
@@ -32,6 +34,28 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Load environment variables from .env file
+load_dotenv()
+
+# --- LLM Client Configuration ---
+def get_llm_client(env_api_key, sidebar_api_key):
+    """
+    Returns an LLM client. Prioritizes OpenAI if an API key is provided,
+    otherwise falls back to a local Ollama model.
+    """
+    # Prioritize sidebar input, then environment variable
+    api_key = sidebar_api_key or env_api_key
+
+    if api_key:
+        st.sidebar.success("OpenAI API key is active.", icon="✅")
+        return ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, api_key=api_key)
+    else:
+        from langchain_ollama import OllamaLLM
+        st.sidebar.warning("OpenAI API key not found. Falling back to local Ollama model. Responses may be slower or less accurate.", icon="⚠️")
+        return OllamaLLM(model="llama3:8b")
+
+
 
 # Load data
 @st.cache_data
@@ -70,12 +94,30 @@ if 'social_media_final_text' not in st.session_state:
 
 # Sidebar
 st.sidebar.title("📊 MCCS Email Analytics")
+
+# --- API Key Management ---
+env_api_key = os.environ.get("OPENAI_API_KEY")
+
+# Determine the help text based on whether a key is found in the .env file
+if env_api_key:
+    help_text = "A key from .env is loaded. You can enter a new key here to override it."
+    placeholder = "Using key from .env"
+else:
+    help_text = "Provide an OpenAI key to use GPT models. If left blank, a local model will be used."
+    placeholder = "Enter your OpenAI API key"
+
+sidebar_api_key = st.sidebar.text_input(
+    "OpenAI API Key (Optional)", type="password",
+    placeholder=placeholder, help=help_text
+)
+
 page = st.sidebar.radio(
     "Navigation", 
     ["Dashboard", "Delivery Analysis", "Engagement Analysis", "Campaign Analysis", "Audience Analysis", "Social Media Dashboard", "LLM Insights","AI Data Analysis Agent"]
 )
 
-llm = OllamaLLM(model="llama3:8b")
+# Get the appropriate LLM client based on API key availability
+llm_client = get_llm_client(env_api_key, sidebar_api_key)
 
 # Dashboard page
 if page == "Dashboard":
@@ -122,7 +164,7 @@ if page == "Dashboard":
                     "diff_open_rate": open_rate_diff,
                     "diff_click_to_open_rate": click_rate_diff
                 }
-                st.session_state.email_key_performance_response = email_key_performance_response(email_key_performance, 6)
+                st.session_state.email_key_performance_response = email_key_performance_response(llm_client, email_key_performance, 6)
     with col2:
         if st.button("❌ Reset", key="button_clear_0"):
             st.session_state.email_key_performance_response = ""
@@ -162,7 +204,7 @@ if page == "Dashboard":
                     with st.spinner("AI processing..."):
                         feature = ["Sends", "Deliveries", "Daily"]
                         print(data['time_series']['delivery'][feature])
-                        st.session_state.email_performance_over_time_response = email_performance_over_time_response(
+                        st.session_state.email_performance_over_time_response = email_performance_over_time_response(llm_client,
                             data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
             with col2:
                 if st.button("❌ Reset", key="button_clear_1"):
@@ -215,7 +257,7 @@ if page == "Dashboard":
     with col1:
         if st.button("Start AI Analysis", key="button_2"):
             with st.spinner("AI processing..."):
-                st.session_state.email_domain_day_of_week_response = email_domain_day_of_week_response(data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'], data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
+                st.session_state.email_domain_day_of_week_response = email_domain_day_of_week_response(llm_client, data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'], data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
     with col2:
         if st.button("❌ Reset", key="button_clear_2"):
             st.session_state.email_domain_day_of_week_response = ""
@@ -224,7 +266,7 @@ if page == "Dashboard":
         st.write(st.session_state.email_domain_day_of_week_response)
 
     if st.button("📄 Generate & Preview PDF"):
-        final_report = email_final_result_response(st.session_state.email_key_performance_response,
+        final_report = email_final_result_response(llm_client, st.session_state.email_key_performance_response,
                                                    st.session_state.email_performance_over_time_response,
                                                    st.session_state.email_domain_day_of_week_response)
 
@@ -520,7 +562,7 @@ elif page == "Social Media Dashboard":
     st.write("AI response")
 
     # 用户反馈输入框
-    user_feedback = st.text_input("If you have any idea or advice with my response, Please feel free to come up with!")
+    user_feedback_input = st.text_input("If you have any idea or advice with my response, Please feel free to come up with!")
 
     col1, col2 = st.columns([1, 1])  # 可以调整宽度比例
 
@@ -539,7 +581,7 @@ elif page == "Social Media Dashboard":
                     "posts_shares_diff": posts_shares_diff,
                     "post_comments_diff": post_comments_diff
                 }
-                st.session_state.social_media_key_performance_response = social_media_key_performance_response(social_media_key_performance, user_feedback, 5)
+                st.session_state.social_media_key_performance_response = social_media_key_performance_response(llm_client, social_media_key_performance, user_feedback_input or "", 5)
     with col2:
         if st.button("❌ Reset", key="button_clear_3"):
             st.session_state.social_media_key_performance_response = ""
@@ -608,7 +650,7 @@ elif page == "Social Media Dashboard":
         if st.button("Start AI Analysis", key="button_4"):
             with st.spinner("AI processing..."):
                 st.session_state.social_media_posts_over_time_response = social_media_posts_over_time_response(
-                    total_engagement_metrics_on)
+                    llm_client, total_engagement_metrics_on)
     with col2:
         if st.button("❌ Reset", key="button_clear_4"):
             st.session_state.social_media_posts_over_time_response = ""
@@ -631,7 +673,7 @@ elif page == "Social Media Dashboard":
         if st.button("Start AI Analysis", key="button_5"):
             with st.spinner("AI processing..."):
                 st.session_state.social_media_hourly_engagements_response = social_media_hourly_engagements_response(
-                    social_engagement_by_time_of)
+                    llm_client, social_engagement_by_time_of)
     with col2:
         if st.button("❌ Reset", key="button_clear_5"):
             st.session_state.social_media_hourly_engagements_response = ""
@@ -640,7 +682,7 @@ elif page == "Social Media Dashboard":
         st.write(st.session_state.social_media_hourly_engagements_response)
 
     if st.button("📄 Generate & Preview PDF"):
-        final_report = social_media_final_result_response(st.session_state.social_media_hourly_engagements_response,
+        final_report = social_media_final_result_response(llm_client, st.session_state.social_media_hourly_engagements_response,
                                                    st.session_state.social_media_posts_over_time_response,
                                                    st.session_state.social_media_key_performance_response)
 
@@ -666,11 +708,8 @@ elif page == "Social Media Dashboard":
 elif page == "LLM Insights":
     st.title("🤖 AI-Generated Insights")
     
-    # API key input
-    api_key = st.sidebar.text_input("Enter OpenAI API Key:", type="password")
-    
-    if api_key:
-        openai_client = configure_openai_client(api_key)
+    if env_api_key or sidebar_api_key:
+        openai_client = llm_client
         
         # Insight type selection
         insight_type = st.selectbox(
@@ -740,7 +779,7 @@ elif page == "AI Data Analysis Agent":
             "diff_open_rate": open_rate_diff,
             "diff_click_to_open_rate": click_rate_diff
         }
-        email_key_performance = email_key_performance_response(email_key, 6)
+        email_key_performance = email_key_performance_response(llm_client, email_key, 6)
 
         # Step 2: 模型分析
         status_text.text("Step 2/8: Analyzing monthly email delivery and send performance...")
@@ -748,14 +787,14 @@ elif page == "AI Data Analysis Agent":
 
         feature = ["Sends", "Deliveries", "Daily"]
 
-        email_performance_over_time = email_performance_over_time_response(
+        email_performance_over_time = email_performance_over_time_response(llm_client,
             data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
 
         # Step 3: 图表生成
         status_text.text("Step 3/8: Analyzing email engagement by address selection and day of the week...")
         progress.progress(0.375)
 
-        email_domain_day_of_week = email_domain_day_of_week_response(
+        email_domain_day_of_week = email_domain_day_of_week_response(llm_client,
             data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'],
             data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
 
@@ -763,7 +802,7 @@ elif page == "AI Data Analysis Agent":
         status_text.text("Step 4/8: Writing the conclusion of the email analysis report...")
         progress.progress(0.5)
 
-        email_final_report = email_final_result_response(email_key_performance,
+        email_final_report = email_final_result_response(llm_client, email_key_performance,
                                                    email_performance_over_time,
                                                    email_domain_day_of_week)
 
@@ -803,7 +842,7 @@ elif page == "AI Data Analysis Agent":
             "post_comments_diff": post_comments_diff
         }
 
-        social_media_key_performance = social_media_key_performance_response(social_media_key, "", 5)
+        social_media_key_performance = social_media_key_performance_response(llm_client, social_media_key, "", 5)
 
         # Step 2: 模型分析
         status_text.text("Step 6/8: Analyzing all metrics of monthly social media posts...")
@@ -811,7 +850,7 @@ elif page == "AI Data Analysis Agent":
 
         total_engagement_metrics_on = get_total_engagement_metrics_on(sm_data)
 
-        social_media_posts_over_time = social_media_posts_over_time_response(
+        social_media_posts_over_time = social_media_posts_over_time_response(llm_client,
             total_engagement_metrics_on)
 
         # Step 3: 图表生成
@@ -820,14 +859,14 @@ elif page == "AI Data Analysis Agent":
 
         social_engagement_by_time_of = get_social_engagement_by_time_of(sm_data)
 
-        social_media_hourly_engagements = social_media_hourly_engagements_response(
+        social_media_hourly_engagements = social_media_hourly_engagements_response(llm_client,
             social_engagement_by_time_of)
 
         # Step 4: 结论总结
         status_text.text("Step 8/8: Writing the conclusion of the social media analysis report...")
         progress.progress(1.0)
 
-        social_media_final_report = social_media_final_result_response(social_media_key_performance,
+        social_media_final_report = social_media_final_result_response(llm_client, social_media_key_performance,
                                                          social_media_posts_over_time,
                                                          social_media_hourly_engagements)
 
@@ -871,21 +910,21 @@ def generate_email_report():
         "diff_open_rate": open_rate_diff,
         "diff_click_to_open_rate": click_rate_diff
     }
-    email_key_performance = email_key_performance_response(email_key, 6)
+    email_key_performance = email_key_performance_response(llm_client, email_key, 6)
 
     # Step 2: 模型分析
     feature = ["Sends", "Deliveries", "Daily"]
 
-    email_performance_over_time = email_performance_over_time_response(
+    email_performance_over_time = email_performance_over_time_response(llm_client,
         data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
 
     # Step 3: 图表生成
-    email_domain_day_of_week = email_domain_day_of_week_response(
+    email_domain_day_of_week = email_domain_day_of_week_response(llm_client,
         data['breakdowns']['delivery_by_domain'], data['breakdowns']['engagement_by_domain'],
         data['breakdowns']['delivery_by_weekday'], data['breakdowns']['engagement_by_weekday'])
 
     # Step 4: 结论总结
-    email_final_report = email_final_result_response(email_key_performance,
+    email_final_report = email_final_result_response(llm_client, email_key_performance,
                                                      email_performance_over_time,
                                                      email_domain_day_of_week)
     return email_final_report
@@ -923,22 +962,22 @@ def generate_social_media_report():
         "post_comments_diff": post_comments_diff
     }
 
-    social_media_key_performance = social_media_key_performance_response(social_media_key, "", 5)
+    social_media_key_performance = social_media_key_performance_response(llm_client, social_media_key, "", 5)
 
     # Step 2: 模型分析
     total_engagement_metrics_on = get_total_engagement_metrics_on(sm_data)
 
-    social_media_posts_over_time = social_media_posts_over_time_response(
+    social_media_posts_over_time = social_media_posts_over_time_response(llm_client,
         total_engagement_metrics_on)
 
     # Step 3: 图表生成
     social_engagement_by_time_of = get_social_engagement_by_time_of(sm_data)
 
-    social_media_hourly_engagements = social_media_hourly_engagements_response(
+    social_media_hourly_engagements = social_media_hourly_engagements_response(llm_client,
         social_engagement_by_time_of)
 
     # Step 4: 结论总结
-    social_media_final_report = social_media_final_result_response(social_media_key_performance,
+    social_media_final_report = social_media_final_result_response(llm_client, social_media_key_performance,
                                                                    social_media_posts_over_time,
                                                                    social_media_hourly_engagements)
 
