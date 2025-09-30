@@ -3,6 +3,7 @@ import pandas as pd
 import re
 
 base_path = "data/rawdata"
+print(os.listdir("data/rawdata"))
 
 def load_raw_data(path = "Social_Media_Perfomance_Jan25.xlsx"):
     file_path = os.path.join(base_path, path)
