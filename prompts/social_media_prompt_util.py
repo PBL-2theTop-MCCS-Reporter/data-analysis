@@ -1,35 +1,39 @@
 import json
 
-from sentence_transformers import SentenceTransformer
-from langchain_ollama import OllamaLLM
 from src.RAG.data_loader import get_faiss_index
+from langchain_core.output_parsers import StrOutputParser
 from .social_media_prompt_template import social_media_marketing_template, social_media_posts_over_time_template, social_media_hourly_engagements_template, social_media_final_result_template
 from .parameter_extraction_prompt_util import social_media_parameter_extraction
 from .data_analysis_util import analyze_monthly_feature, analyze_hourly_engagements
+from src.RAG.embedding_client import EmbeddingClient
+import numpy as np
 
 db_name = "social_media"
-transformer_model = "paraphrase-MiniLM-L6-v2"
-gpt_model = "llama3:8b"
 
-def social_media_key_performance_response(social_media_data, user_feedback,  k_num = 4):
+# Lazily initialize the embedder to be shared across functions
+_embedder = None
+def get_embedder(llm_client):
+    global _embedder
+    if _embedder is None:
+        api_key = getattr(llm_client, 'api_key', None)
+        _embedder = EmbeddingClient(openai_api_key=api_key)
+    return _embedder
+    
+def social_media_key_performance_response(llm_client, social_media_data, user_feedback, recommendations_count=5, k_num=4):
     print(user_feedback)
 
-    parameter_extraction = json.loads(social_media_parameter_extraction(user_feedback))
+    parameter_extraction = json.loads(social_media_parameter_extraction(llm_client, user_feedback))
 
     print(parameter_extraction)
     print(type(parameter_extraction))
 
     # 获取向量数据库
     index, keys, data = get_faiss_index(db_name)
-    # 加载嵌入模型
-    embedder = SentenceTransformer(transformer_model)
-    # 加载GPT模型
-    llm = OllamaLLM(model=gpt_model)
     # 加载prompt模版和GPT模型
-    email_chain = social_media_marketing_template | llm
+    email_chain = social_media_marketing_template | llm_client | StrOutputParser()
 
-    # 生成查询的嵌入
-    query_embedding = embedder.encode([str(social_media_data)], convert_to_numpy=True)
+    embedder = get_embedder(llm_client)
+    query_embedding = np.array(embedder.encode([str(social_media_data)]))
     # 在 FAISS 中搜索，获取多个相关的结果（例如，k=3表示返回3个最相关术语）
 
     distances, indices = index.search(query_embedding, k_num)
@@ -52,25 +56,21 @@ def social_media_key_performance_response(social_media_data, user_feedback,  k_n
                          for term, document in zip(retrieved_terms, retrieved_documents)])
     social_media_data["search_results"] = search_results
     social_media_data["user_feedback"] = user_feedback
-    social_media_data["recommendations_count"] = parameter_extraction.get("recommendation_count")
+    social_media_data["recommendations_count"] = parameter_extraction.get("recommendation_count") or recommendations_count
 
     print(social_media_data)
 
     response = email_chain.invoke(social_media_data)
     return response
 
-def social_media_posts_over_time_response(social_media_data, k_num = 6):
+def social_media_posts_over_time_response(llm_client, social_media_data, k_num = 6):
     # 获取向量数据库
     index, keys, data = get_faiss_index(db_name)
-    # 加载嵌入模型
-    embedder = SentenceTransformer(transformer_model)
-    # 加载GPT模型
-    llm = OllamaLLM(model=gpt_model)
     # 加载prompt模版和GPT模型
-    email_chain = social_media_posts_over_time_template | llm
+    email_chain = social_media_posts_over_time_template | llm_client | StrOutputParser()
 
-    # 生成查询的嵌入
-    query_embedding = embedder.encode([', '.join(social_media_data.columns.tolist())], convert_to_numpy=True)
+    embedder = get_embedder(llm_client)
+    query_embedding = np.array(embedder.encode([', '.join(social_media_data.columns.tolist())]))
     # 在 FAISS 中搜索，获取多个相关的结果（例如，k=3表示返回3个最相关术语）
 
     distances, indices = index.search(query_embedding, k_num)
@@ -117,18 +117,14 @@ def social_media_posts_over_time_response(social_media_data, k_num = 6):
     response = email_chain.invoke(context)
     return response
 
-def social_media_hourly_engagements_response(social_media_data, k_num = 1):
+def social_media_hourly_engagements_response(llm_client, social_media_data, k_num = 1):
     # 获取向量数据库
     index, keys, data = get_faiss_index(db_name)
-    # 加载嵌入模型
-    embedder = SentenceTransformer(transformer_model)
-    # 加载GPT模型
-    llm = OllamaLLM(model=gpt_model)
     # 加载prompt模版和GPT模型
-    email_chain = social_media_hourly_engagements_template | llm
+    email_chain = social_media_hourly_engagements_template | llm_client | StrOutputParser()
 
-    # 生成查询的嵌入
-    query_embedding = embedder.encode([', '.join(social_media_data.columns.tolist())], convert_to_numpy=True)
+    embedder = get_embedder(llm_client)
+    query_embedding = np.array(embedder.encode([', '.join(social_media_data.columns.tolist())]))
     # 在 FAISS 中搜索，获取多个相关的结果（例如，k=3表示返回3个最相关术语）
 
     distances, indices = index.search(query_embedding, k_num)
@@ -160,11 +156,9 @@ def social_media_hourly_engagements_response(social_media_data, k_num = 1):
     response = email_chain.invoke(context)
     return response
 
-def social_media_final_result_response(result_0, result_1, result_2):
-    # 加载GPT模型
-    llm = OllamaLLM(model=gpt_model)
+def social_media_final_result_response(llm_client, result_0, result_1, result_2):
     # 加载prompt模版和GPT模型
-    social_media_chain = social_media_final_result_template | llm
+    social_media_chain = social_media_final_result_template | llm_client | StrOutputParser()
 
     context = {
         "result_0": result_0,

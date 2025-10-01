@@ -1,15 +1,15 @@
 from src.RAG.vector_db import save_index, save_metadata, load_json_data, load_index, load_metadata
 import faiss
-from sentence_transformers import SentenceTransformer
 import numpy as np
+from src.RAG.embedding_client import EmbeddingClient
 
-def build_faiss_index(db_name, model = 'paraphrase-MiniLM-L6-v2'):
+def build_faiss_index(db_name, openai_api_key=None):
     """构建 FAISS 索引"""
     # 加载 JSON文件
     data = load_json_data(db_name)
 
-    # 加载 SentenceTransformer 模型
-    embedder = SentenceTransformer(model)
+    # 初始化统一的 Embedding 客户端
+    embedder = EmbeddingClient(openai_api_key=openai_api_key)
 
     # 解析 JSON 并转换为文本格式
     documents = []
@@ -25,7 +25,9 @@ def build_faiss_index(db_name, model = 'paraphrase-MiniLM-L6-v2'):
         keys.append(key)
 
     # 生成嵌入向量
-    document_embeddings = embedder.encode(documents, convert_to_numpy=True)
+    # Langchain's OpenAIEmbeddings returns a list of lists, Faiss needs a numpy array.
+    # SentenceTransformer can directly return a numpy array.
+    document_embeddings = np.array(embedder.encode(documents, convert_to_numpy=True))
 
     index = faiss.IndexFlatL2(document_embeddings.shape[1])
     index.add(document_embeddings)
