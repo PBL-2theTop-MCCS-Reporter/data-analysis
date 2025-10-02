@@ -51,6 +51,7 @@ Once the setup is complete, you can run the different components of the applicat
 To launch the email marketing dashboard, run the following command in your terminal:
 
 ```bash
+if dimension issue happend, use command: "python -m src.RAG.main" at root path to update the rag vector
 streamlit run email_marketing_dashboard/app.py
 streamlit run src/dashboard.py
 ```
