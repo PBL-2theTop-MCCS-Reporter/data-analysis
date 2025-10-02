@@ -52,3 +52,6 @@ To launch the email marketing dashboard, run the following command in your termi
 
 ```bash
 streamlit run email_marketing_dashboard/app.py
+
+
+### use python -m src.RAG.main under root path to fix the dimension error.
