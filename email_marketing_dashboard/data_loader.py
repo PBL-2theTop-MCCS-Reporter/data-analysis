@@ -147,6 +147,8 @@ def get_performance_vs_previous(data):
 
 def load_data_simple():
     """Simple version that returns just the three main dataframes"""
+
+
     # Get the directory where the current script is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up one level to the project root

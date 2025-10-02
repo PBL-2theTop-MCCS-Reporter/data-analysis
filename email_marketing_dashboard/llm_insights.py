@@ -47,9 +47,11 @@ def create_prompt_from_data(data, question=None):
         audience_data = data['breakdowns']['by_audience'].head(5).to_string()
     
     # Build data prompt
+    audience_section = f"Top Audiences:\n{audience_data}" if audience_data else ""
+
     data_prompt = f"""
     EMAIL MARKETING METRICS:
-    
+
     Overall Metrics:
     - Total Sends: {sends:,} ({sends_diff})
     - Total Deliveries: {deliveries:,} ({deliveries_diff})
@@ -57,14 +59,14 @@ def create_prompt_from_data(data, question=None):
     - Open Rate: {open_rate:.2%} ({open_rate_diff})
     - Click to Open Rate: {click_rate:.2%} ({click_rate_diff})
     - Unsubscribe Rate: {unsubscribe_rate:.4%} ({unsubscribe_rate_diff})
-    
+
     Top Email Domains:
     {top_domains}
-    
+
     Sends by Day of Week:
     {weekday_data}
-    
-    {f'Top Audiences:\n{audience_data}' if audience_data else ''}
+
+    {audience_section}
     """
     
     if question:
