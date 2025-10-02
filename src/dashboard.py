@@ -153,8 +153,6 @@ date_range = pd.date_range(start="2024-08", end=current_month, freq="MS").strfti
 st.markdown(style, unsafe_allow_html=True)
 st.header("Report Generation Tool")
 st.divider()
-st.write(
-    "Information on effectiveness of digital marketing, sales, Marine Mart reviews, and more can be found here. Data is from 2023 to the present, but data updates may be delayed. THIS MAY TAKE SEVERAL (5 - 10) MINUTES TO GENERATE.")
 
 st.subheader("Quick Report Generation")
 with st.form(key="quick_report_form"):
