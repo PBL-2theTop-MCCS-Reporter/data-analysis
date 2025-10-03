@@ -52,7 +52,6 @@ To launch the email marketing dashboard, run the following command in your termi
 
 ```bash
 streamlit run email_marketing_dashboard/app.py
-streamlit run src/dashboard.py
 ```
 
 ### Running the Full-Functioning Dashboard
