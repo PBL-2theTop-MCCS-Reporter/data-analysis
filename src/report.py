@@ -1,6 +1,7 @@
 import copy
 from datetime import datetime
 
+import pandas as pd
 import streamlit as st
 from dateutil.relativedelta import relativedelta
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -31,97 +32,126 @@ from email_marketing_dashboard.functions import generate_email_report, generate_
 # {PrevMonth} gets replaced with the month before the beginning month
 # {TwoPrevMonth} gets replaced with two months before the beginning month
 
-report_content = [
-    ContentBlock("{DateRange} MCCS Marketing Analytics Assessment",
-                 bold=True,
-                 font_size=15,
-                 color="#24446C",
-                 alignment=Alignment.CENTER,
-                 new_paragraph=True),
-    ContentBlock("Purpose:",
-                 bold=True,
-                 underline=True),
-    ContentBlock(" To support leaders and subject matter experts in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families.",
-                 new_paragraph=True),
-    ContentBlock("Findings - Review of digital performance, advertising campaigns, and sales:",
-                 bold=True,
-                 new_line=True),
-    [
-         ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for {DateRange} was "),
-         ContentBlock("38.08%", bold=True, color="#000071"),
-         ContentBlock(" (32.61% in {PrevMonth}, 30.10% in {TwoPrevMonth})", new_line=True),
+def get_report_content():
+    # GET CURRENT MONTH OPEN RATE
+    try:
+        open_rate_df = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Open_Rate.csv")
+        # Check if column exists and has at least one non-NaN value
+        if "Open Rate" in open_rate_df.columns and not open_rate_df["Open Rate"].isna().all():
+            open_rate = open_rate_df["Open Rate"].iloc[0]
+            open_rate_str = f"{open_rate:.2%}"
+        else:
+            open_rate_str = "[Enter Open Rate]"
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        open_rate_str = "[Enter Open Rate]"
 
-         ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for {DateRange} was "),
-         ContentBlock("0.65%", bold=True, color="#000071"),
-         ContentBlock(" (0.45% in {PrevMonth}, 0.53% in {TwoPrevMonth})", new_line=True),
+    # GET CLICK THROUGH RATE
+    try:
+        click_to_open_rate = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv")
+        # Check if column exists and has at least one non-NaN value
+        if "Click To Open Rate" in click_to_open_rate.columns and not click_to_open_rate["Click To Open Rate"].isna().all():
+            # if open_rate is not None:
+            #     click_through_rate = click_to_open_rate * open_rate
+            #     click_through_rate_str = f"{click_through_rate:.2%}"
+            # else:
+            click_through_rate_str = "[Enter Click Through Rate]"
+        else:
+            click_through_rate_str = "[Enter Click Through Rate]"
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        click_through_rate_str = "[Enter Click Through Rate]"
 
-         ContentBlock("Performance by email blast (highlights):", new_line=True),
+    report_content = [
+        ContentBlock("{DateRange} MCCS Marketing Analytics Assessment",
+                     bold=True,
+                     font_size=15,
+                     color="#24446C",
+                     alignment=Alignment.CENTER,
+                     new_paragraph=True),
+        ContentBlock("Purpose:",
+                     bold=True,
+                     underline=True),
+        ContentBlock(" To support leaders and subject matter experts in their decision-making process while aiming to generate smart revenue, increase brand affinity, and reduce stress on Marines and their families.",
+                     new_paragraph=True),
+        ContentBlock("Findings - Review of digital performance, advertising campaigns, and sales:",
+                     bold=True,
+                     new_line=True),
+        [
+             ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for {DateRange} was "),
+             ContentBlock(f"{open_rate_str}", bold=True, color="#000071"),
+             ContentBlock(" ([Enter Last Month Open Rate] in {PrevMonth}, [Enter Open Rate From Two Months Ago] in {TwoPrevMonth})", new_line=True),
 
-         ContentBlock("09-13 - \"For a limited time only - our 72 Hour Anniversary deals start today!\" 39.60% OPR 1.24% CTR", indent=True, new_line=True),
+             ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for {DateRange} was "),
+             ContentBlock("0.65%", bold=True, color="#000071"),
+             ContentBlock(" ([Enter Last Month CTR Rate] in {PrevMonth}, [Enter CTR From Two Months Ago] in {TwoPrevMonth})", new_line=True),
 
-         ContentBlock("Quantico Firearms - \"Attention NOVA MCX Customers!\" 44.60% OPR 0.52% CTR", indent=True, new_line=True),
+             ContentBlock("Performance by email blast (highlights):", new_line=True),
 
-         ContentBlock("Labor Day (3 Emails w/ Coupons)", bold=True, color="#000071"),
-         ContentBlock(" (28-Aug - 02-Sept TY; 23-Aug - 5-Sept LY):", new_line=True),
+             ContentBlock("09-13 - \"For a limited time only - our 72 Hour Anniversary deals start today!\" 39.60% OPR 1.24% CTR", indent=True, new_line=True),
 
-         ContentBlock("Average OPR: 34.0% I Average CTR: 0.56% I Coupon Scans - Email: 172, Mobile: 383, In-Store Print: 4,230", indent=True, new_line=True),
+             ContentBlock("Quantico Firearms - \"Attention NOVA MCX Customers!\" 44.60% OPR 0.52% CTR", indent=True, new_line=True),
 
-         ContentBlock("Total Sales: $12.6M TY; $11.8M LY I Average Daily Sales 2024: $64K; Average Daily Sales 2023: $60K", indent=True, new_line=True),
+             ContentBlock("Labor Day (3 Emails w/ Coupons)", bold=True, color="#000071"),
+             ContentBlock(" (28-Aug - 02-Sept TY; 23-Aug - 5-Sept LY):", new_line=True),
 
-         ContentBlock("2024 Promotion through email with coupons, 2022 and 2023 promotion through print and coupons", indent=True, new_line=True),
+             ContentBlock("Average OPR: 34.0% I Average CTR: 0.56% I Coupon Scans - Email: 172, Mobile: 383, In-Store Print: 4,230", indent=True, new_line=True),
 
-         ContentBlock("Anniversary", bold=True, color="#000071"),
-         ContentBlock(" (4-Sept -17-Sept TY; 6-Sept -19-Sept LY):", new_line=True),
+             ContentBlock("Total Sales: $12.6M TY; $11.8M LY I Average Daily Sales 2024: $64K; Average Daily Sales 2023: $60K", indent=True, new_line=True),
 
-         ContentBlock("Advertised Sales: $3.30M TY (22.28% of Participating MS); $3.27M LY (24.40% of Participating MS)", indent=True, new_line=True),
+             ContentBlock("2024 Promotion through email with coupons, 2022 and 2023 promotion through print and coupons", indent=True, new_line=True),
 
-         ContentBlock("EMAG page views: 79,455 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
+             ContentBlock("Anniversary", bold=True, color="#000071"),
+             ContentBlock(" (4-Sept -17-Sept TY; 6-Sept -19-Sept LY):", new_line=True),
 
-         ContentBlock("Glamorama", bold=True, color="#000071"),
-         ContentBlock(" (4-Sept - 17-Sept TY; 6-Sept- 19-Sept LY):", new_line=True),
+             ContentBlock("Advertised Sales: $3.30M TY (22.28% of Participating MS); $3.27M LY (24.40% of Participating MS)", indent=True, new_line=True),
 
-         ContentBlock("Advertised Sales: $405K TY (3.20% of Participating MS TY), $422K (3.19% of Participating MS LY)", indent=True, new_line=True),
+             ContentBlock("EMAG page views: 79,455 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
 
-         ContentBlock("EMAG page views: 43,282 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
+             ContentBlock("Glamorama", bold=True, color="#000071"),
+             ContentBlock(" (4-Sept - 17-Sept TY; 6-Sept- 19-Sept LY):", new_line=True),
 
-         ContentBlock("Fall Sight & Sound", bold=True, color="#000071"),
-         ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
+             ContentBlock("Advertised Sales: $405K TY (3.20% of Participating MS TY), $422K (3.19% of Participating MS LY)", indent=True, new_line=True),
 
-         ContentBlock("Advertised Sales: $466K TY (4.22% of Participating MS TY), $591K (5.08% of Participating MS LY)", indent=True, new_line=True),
+             ContentBlock("EMAG page views: 43,282 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
 
-         ContentBlock("EMAG page views: 19,342 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
+             ContentBlock("Fall Sight & Sound", bold=True, color="#000071"),
+             ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
 
-         ContentBlock("Sept Designer/Fall Trend", bold=True, color="#000071"),
-         ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
+             ContentBlock("Advertised Sales: $466K TY (4.22% of Participating MS TY), $591K (5.08% of Participating MS LY)", indent=True, new_line=True),
 
-         ContentBlock("Advertised Sales: $405K TY (4.22% of Participating MS TY), $961K (5.08% of Participating MS LY)", indent=True, new_line=True),
+             ContentBlock("EMAG page views: 19,342 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
 
-         ContentBlock("EMAG page views: 13,435 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
+             ContentBlock("Sept Designer/Fall Trend", bold=True, color="#000071"),
+             ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
 
-         ContentBlock("Other Initiatives", bold=True, color="#000071"),
-         ContentBlock(": Baby & Me: 19 coupons used I Hallmark: 14 coupons used I Case Wine 10%: 35 coupons used", new_paragraph=True),
-    ],
-    ContentBlock("Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews:",
-                 bold=True,
-                 new_line=True),
-    [
-        ContentBlock("92% of 382 Main Exchange survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
-        ContentBlock("15.7% said they were shopping sales that were advertised, indicating MCX advertisements are successfully driving footsteps in the door. 45.5% were picking up needed supplies.", indent=True, new_line=True),
-        ContentBlock("96% of 520 Marine Mart survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
-        ContentBlock("42 customers were unable to purchase everything they intended. 50% of these customers said it was because MCX did not carry the item they were looking for. (See Enclosure 2 for sought after items comments)", indent=True, new_line=True),
-        ContentBlock("There were 392 MCHS survey respondents, with an average CSAT score of 91.8.", color="#000071", bold=True, new_line=True),
-        ContentBlock("In September 2023, there were 603 survey respondents with an average CSAT score of 88.1", indent=True, new_line=True),
-        ContentBlock("40.8% of respondents were T AD/TDY. 32.1% of respondents were traveling for leisure.", indent=True, new_line=True),
-        ContentBlock("Respondents traveling for leisure averaged a CSAT score of 90.1. Respondents T AD/TDY averaged 87.6.", indent=True, new_line=True),
-        ContentBlock("All time ", indent=True),
-        ContentBlock("Google Reviews", bold=True, color="#000071"),
-        ContentBlock(" have an average rating of 4.4 out of 5 and there has been a total of 10,637 reviews.", new_paragraph=True),
-    ],
-    ContentBlock("Assessments",
-                 bold=True,
-                 new_line=True),
+             ContentBlock("Advertised Sales: $405K TY (4.22% of Participating MS TY), $961K (5.08% of Participating MS LY)", indent=True, new_line=True),
 
-]
+             ContentBlock("EMAG page views: 13,435 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
+
+             ContentBlock("Other Initiatives", bold=True, color="#000071"),
+             ContentBlock(": Baby & Me: 19 coupons used I Hallmark: 14 coupons used I Case Wine 10%: 35 coupons used", new_paragraph=True),
+        ],
+        ContentBlock("Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews:",
+                     bold=True,
+                     new_line=True),
+        [
+            ContentBlock("92% of 382 Main Exchange survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
+            ContentBlock("15.7% said they were shopping sales that were advertised, indicating MCX advertisements are successfully driving footsteps in the door. 45.5% were picking up needed supplies.", indent=True, new_line=True),
+            ContentBlock("96% of 520 Marine Mart survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
+            ContentBlock("42 customers were unable to purchase everything they intended. 50% of these customers said it was because MCX did not carry the item they were looking for. (See Enclosure 2 for sought after items comments)", indent=True, new_line=True),
+            ContentBlock("There were 392 MCHS survey respondents, with an average CSAT score of 91.8.", color="#000071", bold=True, new_line=True),
+            ContentBlock("In September 2023, there were 603 survey respondents with an average CSAT score of 88.1", indent=True, new_line=True),
+            ContentBlock("40.8% of respondents were T AD/TDY. 32.1% of respondents were traveling for leisure.", indent=True, new_line=True),
+            ContentBlock("Respondents traveling for leisure averaged a CSAT score of 90.1. Respondents T AD/TDY averaged 87.6.", indent=True, new_line=True),
+            ContentBlock("All time ", indent=True),
+            ContentBlock("Google Reviews", bold=True, color="#000071"),
+            ContentBlock(" have an average rating of 4.4 out of 5 and there has been a total of 10,637 reviews.", new_paragraph=True),
+        ],
+        ContentBlock("Assessments",
+                     bold=True,
+                     new_line=True),
+
+    ]
+    return report_content
 
 def add_raw_output_to_report_content(raw_assessments, raw_social_media_report):
     # Process assessments and social_media_report raw output
@@ -162,7 +192,7 @@ def add_raw_output_to_report_content(raw_assessments, raw_social_media_report):
         social_media_content.append(content_block)
 
     # Build the report using the existing template + new Ollama Information
-    current_report = copy.deepcopy(report_content)
+    current_report = get_report_content()
     current_report.append(assessments_content)
     current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
                                        bold=True,
