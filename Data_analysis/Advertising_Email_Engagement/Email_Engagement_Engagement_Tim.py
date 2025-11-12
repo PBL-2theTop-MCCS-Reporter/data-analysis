@@ -2,9 +2,13 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
-# Load the data
-data = pd.read_csv('/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv', header=0)  # Adjust header if necessary
+# Load the data using relative path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))  # Go up 2 levels to project root
+data_path = os.path.join(project_root, 'data', 'convertedcsv', 'Advertising_Email_Engagement', 'Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv')
+data = pd.read_csv(data_path, header=0)  # Adjust header if necessary
 data.columns = data.columns.str.strip()
 print(data.columns)
 
