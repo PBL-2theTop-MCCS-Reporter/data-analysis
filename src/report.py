@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime
+from webbrowser import open_new
 
 import pandas as pd
 import streamlit as st
@@ -23,17 +24,54 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from email_marketing_dashboard.functions import generate_email_report, generate_social_media_report
-
-# from email_marketing_dashboard.data_loader import load_data, get_email_funnel_data, get_performance_vs_previous
-
 # Refer to ContentBlock.py for list of useful functions. Use a list within the report_content to activate a bullet list
 # {DateRange} gets replaced with the date range
 # {PrevMonth} gets replaced with the month before the beginning month
 # {TwoPrevMonth} gets replaced with two months before the beginning month
 
+def get_satisfaction_percentages(sheet):
+    df = pd.read_excel('data/rawdata/CustomerSurveyResponses.xlsx', sheet_name=sheet)
+    df['answerValues'] = pd.to_numeric(df['answerValues'], errors='coerce')
+    satisfaction_df = df[df['questionLabel'].str.contains('satisfaction - overall', case=False, na=False)]
+    satisfied = satisfaction_df[satisfaction_df['answerValues'] >= 4]['respondentId'].nunique()
+    total = satisfaction_df['respondentId'].nunique()
+    percentage_satisfied = (satisfied / total) * 100 if total > 0 else 0
+    return percentage_satisfied, total
+
+def get_answer_percentages(sheet, question_label, target_answers):
+    df = pd.read_excel("data/rawdata/CustomerSurveyResponses.xlsx", sheet_name=sheet)
+    question_df = df[df["questionLabel"] == question_label].copy()
+    question_df["answerLabels"] = question_df["answerLabels"].astype(str)
+    if isinstance(target_answers, str):
+        target_answers = [target_answers]
+    respondent_groups = question_df.groupby("respondentId")
+    total_respondents = respondent_groups.ngroups
+
+    def respondent_has_target(group):
+        return any(
+            group["answerLabels"].str.contains(answer, case=False, na=False).any()
+            for answer in target_answers
+        )
+
+    respondents_with_answer = sum(respondent_groups.apply(respondent_has_target))
+    percentage = (respondents_with_answer / total_respondents) * 100 if total_respondents > 0 else 0
+    return respondents_with_answer, total_respondents, percentage
+
 def get_report_content():
+    # Load the details file, which has the most details of any advertising email dataset and is mandatory in all data
+    try:
+        details_df = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Details.csv")
+
+        # Ensure the file isn’t empty
+        if details_df.empty or details_df.shape[0] < 2:
+            return [ContentBlock("No data found. Please enter all content manually or provide non-empty data sheets.")]
+    except (FileNotFoundError, pd.errors.EmptyDataError):
+        return [ContentBlock("Advertising Email Engagement Details data file is not found. Please enter all content manually or provide the data file.")]
+
+    # If there is at least one email in the database, then proceed with the rest of the function
+
     # GET CURRENT MONTH OPEN RATE
+    open_rate = None
     try:
         open_rate_df = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Open_Rate.csv")
         # Check if column exists and has at least one non-NaN value
@@ -47,18 +85,98 @@ def get_report_content():
 
     # GET CLICK THROUGH RATE
     try:
-        click_to_open_rate = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv")
+        click_to_open_rate_df = pd.read_csv("data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Click_to_Open_Rate.csv")
         # Check if column exists and has at least one non-NaN value
-        if "Click To Open Rate" in click_to_open_rate.columns and not click_to_open_rate["Click To Open Rate"].isna().all():
-            # if open_rate is not None:
-            #     click_through_rate = click_to_open_rate * open_rate
-            #     click_through_rate_str = f"{click_through_rate:.2%}"
-            # else:
-            click_through_rate_str = "[Enter Click Through Rate]"
+        if "Click To Open Rate" in click_to_open_rate_df.columns and not click_to_open_rate_df["Click To Open Rate"].isna().all():
+            click_to_open_rate = click_to_open_rate_df["Click To Open Rate"].iloc[0]
+            if click_to_open_rate is not None and open_rate is not None:
+                click_through_rate = click_to_open_rate * open_rate
+                click_through_rate_str = f"{click_through_rate:.2%}"
+            else:
+                click_through_rate_str = "[Enter Click Through Rate]"
         else:
             click_through_rate_str = "[Enter Click Through Rate]"
     except (FileNotFoundError, pd.errors.EmptyDataError):
         click_through_rate_str = "[Enter Click Through Rate]"
+
+    # GET HIGHLIGHTS
+    click_sorted = details_df.sort_values(by="Click Rate", ascending=False).reset_index(drop=True)
+    open_sorted = details_df.sort_values(by="Open Rate", ascending=False).reset_index(drop=True)
+
+    highlights = []
+
+    top_click = click_sorted.iloc[0]
+    top_open = open_sorted.iloc[0]
+
+    if top_click["Message Name"] == top_open["Message Name"]:
+        highlights.append(top_click)
+        if len(click_sorted) > 2:
+            second_click = click_sorted.iloc[1]
+            second_open = open_sorted.iloc[1]
+            if second_click["Message Name"] == second_open["Message Name"]:
+                highlights.append(second_click)
+            else:
+                highlights.append(second_open)
+                highlights.append(second_click)
+    else:
+        highlights.append(top_click)
+        highlights.append(top_open)
+
+    highlight_content_blocks = []
+    for highlight in highlights:
+        highlight_content_block = ContentBlock(f"\"{highlight['Message Name']}\" {highlight['Open Rate']:.2%} OPR {highlight['Click Rate']:.2%} CTR", indent=True, new_line=True)
+        highlight_content_blocks.append(highlight_content_block)
+
+    # GET CAMPAIGNS
+    # Drop rows where 'Campaign' is NaN or empty
+    campaigns_df = details_df.dropna(subset=["Campaign"])
+    campaigns_df = campaigns_df[campaigns_df["Campaign"].astype(str).str.strip() != ""]
+
+    campaign_content_blocks = []
+    if campaigns_df.empty:
+        campaign_content_blocks.append(ContentBlock("No campaign data for this time period.", bold=True, color="#000071", new_line=True))
+    else:
+        # Convert dates
+        campaigns_df["Send Date"] = pd.to_datetime(campaigns_df["Send Date"], errors="coerce")
+
+        # Drop rows with invalid dates
+        campaigns_df = campaigns_df.dropna(subset=["Send Date"])
+
+        # Group by Campaign
+        for campaign, group in campaigns_df.groupby("Campaign"):
+            start_date = group["Send Date"].min().strftime("%d-%b")
+            end_date = group["Send Date"].max().strftime("%d-%b")
+            avg_open = group["Open Rate"].mean(skipna=True)
+            avg_click = group["Click Rate"].mean(skipna=True)
+
+            campaign_content_blocks.append(ContentBlock(f"{campaign.title()}", bold=True, color="#000071"))
+            campaign_content_blocks.append(ContentBlock(f" ({start_date} - {end_date} TY):", new_line=True))
+            campaign_content_blocks.append(ContentBlock(f"Average OPR: {avg_open:.1%} I Average CTR: {avg_click:.1%}", indent=True, new_line=True))
+
+    # GET MAIN EXCHANGE SURVEYS
+    main_stores_percentage_satisfied, main_stores_total = get_satisfaction_percentages("Main Stores")
+    _, _, main_stores_percentage_advertised = get_answer_percentages("Main Stores", "MCX_Primary Reason", "Shopping sales that were advertised")
+    _, _, main_stores_percentage_picking_up_needed_supplies = get_answer_percentages("Main Stores", "MCX_Primary Reason", "Picking up needed supplies")
+    marine_marts_percentage_satisfied, marine_marts_total = get_satisfaction_percentages("Marine Marts")
+    marine_marts_didnt_find_count, _, marine_marts_percentage_didnt_find = get_answer_percentages("Marine Marts", "Items Found", ["Partially", "No"])
+
+    # PUT TOGETHER REPORT
+    email_findings = [
+         ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for {DateRange} was "),
+         ContentBlock(f"{open_rate_str}", bold=True, color="#000071"),
+         ContentBlock(" ([Enter Last Month Open Rate] in {PrevMonth}, [Enter Open Rate From Two Months Ago] in {TwoPrevMonth})", new_line=True),
+
+         ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for {DateRange} was "),
+         ContentBlock(f"{click_through_rate_str}", bold=True, color="#000071"),
+         ContentBlock(" ([Enter Last Month CTR Rate] in {PrevMonth}, [Enter CTR From Two Months Ago] in {TwoPrevMonth})", new_line=True),
+
+         ContentBlock("Performance by email blast (highlights):", new_line=True),
+    ]
+
+    for highlight_content_block in highlight_content_blocks:
+        email_findings.append(highlight_content_block)
+    for campaign_content_block in campaign_content_blocks:
+        email_findings.append(campaign_content_block)
 
     report_content = [
         ContentBlock("{DateRange} MCCS Marketing Analytics Assessment",
@@ -75,69 +193,15 @@ def get_report_content():
         ContentBlock("Findings - Review of digital performance, advertising campaigns, and sales:",
                      bold=True,
                      new_line=True),
-        [
-             ContentBlock("The industry standard open rate (OPR) for emails in retail is 15-25% - MCX average for {DateRange} was "),
-             ContentBlock(f"{open_rate_str}", bold=True, color="#000071"),
-             ContentBlock(" ([Enter Last Month Open Rate] in {PrevMonth}, [Enter Open Rate From Two Months Ago] in {TwoPrevMonth})", new_line=True),
-
-             ContentBlock("The industry standard click through rate (CTR) is 1-5% - MCX average for {DateRange} was "),
-             ContentBlock("0.65%", bold=True, color="#000071"),
-             ContentBlock(" ([Enter Last Month CTR Rate] in {PrevMonth}, [Enter CTR From Two Months Ago] in {TwoPrevMonth})", new_line=True),
-
-             ContentBlock("Performance by email blast (highlights):", new_line=True),
-
-             ContentBlock("09-13 - \"For a limited time only - our 72 Hour Anniversary deals start today!\" 39.60% OPR 1.24% CTR", indent=True, new_line=True),
-
-             ContentBlock("Quantico Firearms - \"Attention NOVA MCX Customers!\" 44.60% OPR 0.52% CTR", indent=True, new_line=True),
-
-             ContentBlock("Labor Day (3 Emails w/ Coupons)", bold=True, color="#000071"),
-             ContentBlock(" (28-Aug - 02-Sept TY; 23-Aug - 5-Sept LY):", new_line=True),
-
-             ContentBlock("Average OPR: 34.0% I Average CTR: 0.56% I Coupon Scans - Email: 172, Mobile: 383, In-Store Print: 4,230", indent=True, new_line=True),
-
-             ContentBlock("Total Sales: $12.6M TY; $11.8M LY I Average Daily Sales 2024: $64K; Average Daily Sales 2023: $60K", indent=True, new_line=True),
-
-             ContentBlock("2024 Promotion through email with coupons, 2022 and 2023 promotion through print and coupons", indent=True, new_line=True),
-
-             ContentBlock("Anniversary", bold=True, color="#000071"),
-             ContentBlock(" (4-Sept -17-Sept TY; 6-Sept -19-Sept LY):", new_line=True),
-
-             ContentBlock("Advertised Sales: $3.30M TY (22.28% of Participating MS); $3.27M LY (24.40% of Participating MS)", indent=True, new_line=True),
-
-             ContentBlock("EMAG page views: 79,455 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
-
-             ContentBlock("Glamorama", bold=True, color="#000071"),
-             ContentBlock(" (4-Sept - 17-Sept TY; 6-Sept- 19-Sept LY):", new_line=True),
-
-             ContentBlock("Advertised Sales: $405K TY (3.20% of Participating MS TY), $422K (3.19% of Participating MS LY)", indent=True, new_line=True),
-
-             ContentBlock("EMAG page views: 43,282 I Main Exchange Total Sales: $15.7M TY/ 15.4M LY; Trans: 273K TY/ 272K LY", indent=True, new_line=True),
-
-             ContentBlock("Fall Sight & Sound", bold=True, color="#000071"),
-             ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
-
-             ContentBlock("Advertised Sales: $466K TY (4.22% of Participating MS TY), $591K (5.08% of Participating MS LY)", indent=True, new_line=True),
-
-             ContentBlock("EMAG page views: 19,342 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
-
-             ContentBlock("Sept Designer/Fall Trend", bold=True, color="#000071"),
-             ContentBlock(" (18-Sept - 1-Oct TY; 20-Sept- 3-Oct LY):", new_line=True),
-
-             ContentBlock("Advertised Sales: $405K TY (4.22% of Participating MS TY), $961K (5.08% of Participating MS LY)", indent=True, new_line=True),
-
-             ContentBlock("EMAG page views: 13,435 I Main Exchange Total Sales: $13.3M TY/ 13.9M LY; Trans: 246K TY/ 262K LY", indent=True, new_line=True),
-
-             ContentBlock("Other Initiatives", bold=True, color="#000071"),
-             ContentBlock(": Baby & Me: 19 coupons used I Hallmark: 14 coupons used I Case Wine 10%: 35 coupons used", new_paragraph=True),
-        ],
+        email_findings,
         ContentBlock("Findings - Review of Main Exchanges, Marine Marts, and MCHS CSAT Surveys and Google Reviews:",
                      bold=True,
                      new_line=True),
         [
-            ContentBlock("92% of 382 Main Exchange survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
-            ContentBlock("15.7% said they were shopping sales that were advertised, indicating MCX advertisements are successfully driving footsteps in the door. 45.5% were picking up needed supplies.", indent=True, new_line=True),
-            ContentBlock("96% of 520 Marine Mart survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
-            ContentBlock("42 customers were unable to purchase everything they intended. 50% of these customers said it was because MCX did not carry the item they were looking for. (See Enclosure 2 for sought after items comments)", indent=True, new_line=True),
+            ContentBlock(f"{round(main_stores_percentage_satisfied)}% of {main_stores_total} Main Exchange survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
+            ContentBlock(f"{main_stores_percentage_advertised:.1f}% said they were shopping sales that were advertised. {main_stores_percentage_picking_up_needed_supplies:.1f}% were picking up needed supplies.", indent=True, new_line=True),
+            ContentBlock(f"{round(marine_marts_percentage_satisfied)}% of {marine_marts_total} Marine Mart survey respondents reported overall satisfaction with their experience.", color="#000071", bold=True, new_line=True),
+            ContentBlock(f"{marine_marts_didnt_find_count} out of {marine_marts_total} ({marine_marts_percentage_didnt_find:.1f}%) customers were unable to purchase everything they intended.", indent=True, new_line=True),
             ContentBlock("There were 392 MCHS survey respondents, with an average CSAT score of 91.8.", color="#000071", bold=True, new_line=True),
             ContentBlock("In September 2023, there were 603 survey respondents with an average CSAT score of 88.1", indent=True, new_line=True),
             ContentBlock("40.8% of respondents were T AD/TDY. 32.1% of respondents were traveling for leisure.", indent=True, new_line=True),
@@ -149,7 +213,6 @@ def get_report_content():
         ContentBlock("Assessments",
                      bold=True,
                      new_line=True),
-
     ]
     return report_content
 
