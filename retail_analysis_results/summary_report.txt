@@ -1,0 +1,25 @@
+MCCS Retail Sales Data Analysis Summary
+======================================
+
+Analysis Period: Dec 2024 - Jan 2025
+Total Sales: $88,695,136.04
+Total Transactions: 10,001
+Total Unique Items: 102,158
+Total Quantity Sold: 10,039,082.0
+Return Rate: 0.53%
+Number of Stores: 79
+Number of Commands: 14
+Store Formats: MARINE MART, MAIN STORE
+
+Key Insights:
+-------------
+1. Highest sales occur on Fridays
+2. Peak sales hour is 12:00h (24-hour format)
+3. Best-selling product by revenue: TORNADO ($542,181.80)
+4. Top performing store: CLM MCX MAIN STORE ($9,262,651.32)
+5. Regular-priced items account for $60,172,592.40 in sales (67.8% of total)
+6. Promotional items account for $21,619.19 in sales (0.0% of total)
+7. Markdown items account for $28,500,924.45 in sales (32.1% of total)
+8. Average transaction value: $8,868.63
+9. Average items per transaction: 1003.81
+10. Product with highest return rate: D_HRB 7.5 FIRM FIT CONTOUR BELT SMALL (100.00%)

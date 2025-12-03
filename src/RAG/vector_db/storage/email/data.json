@@ -1,0 +1,42 @@
+{
+  "Total Sends": {
+    "Definition": "Total Sends refers to the total number of emails sent, including all those sent but not necessarily successfully delivered.",
+    "Meaning": "This metric provides the scope of an email marketing campaign, reflecting the number of potential audiences you are trying to reach. While it does not directly measure effectiveness, it is the foundation for calculating other key metrics (such as delivery rate, open rate, etc.). By analyzing changes in the send volume, you can assess whether you are expanding your reach in the target market or conducting a large-scale promotional campaign.",
+    "Analysis Suggestions": "A high send volume may indicate a large-scale marketing campaign, but if there is no corresponding high engagement, it may suggest that the email content or targeting is not appealing to the intended audience. Sending too many emails without proper segmentation may lead to an inaccurate target audience, so optimizing the email list is necessary."
+  },
+  "Delivery": {
+    "Definition": "Delivery refers to the percentage of emails successfully delivered out of the total sends. Emails that fail to deliver typically include those due to invalid email addresses, server issues, or being blocked by spam filters.",
+    "Meaning": "This metric reflects the effectiveness of the email system and the health of the email list. A high delivery rate indicates that emails successfully reach the recipient's inbox, while a low delivery rate may be due to invalid email addresses, spam filtering, or other technical issues.",
+    "Analysis Suggestions": "A low delivery rate typically means the email list contains a large number of invalid addresses or a high rate of bounces. You can improve the delivery rate by regularly cleaning up your email list. The delivery rate can also reflect your sender reputation. If the delivery rate is very low, you may need to check if the emails are being marked as spam."
+  },
+  "Open Rate": {
+    "Definition": "Open Rate is the percentage of emails opened out of the successfully delivered emails.",
+    "Meaning": "This metric directly measures the appeal of the email, particularly the email subject line's effectiveness. A high open rate usually means the email subject, sender name, or sending timing aligns with the recipient's interests and needs.",
+    "Analysis Suggestions": "If the open rate is low, it could be because the subject line or preview text did not attract the recipient. In this case, try A/B testing different subject lines and preview texts or improve the sender's name to make it more personalized and appealing. Low open rates may also be related to the sending timing. You should analyze the audience's behavior and choose the most effective time to send the emails."
+  },
+  "Click to Open Rate": {
+    "Definition": "Click to Open Rate refers to the percentage of recipients who clicked on any link in the email, out of the total number of opened emails.",
+    "Meaning": "This metric measures the relevance and appeal of the email content, as well as the effectiveness of the call-to-action (CTA) buttons or links. A high click-to-open rate usually indicates that the email content aligns with the recipient's needs, and the CTA is clear and engaging.",
+    "Analysis Suggestions": "A high click-to-open rate and significant conversions suggest that the email design and content match the recipient's expectations. If the click-to-open rate is low, the CTA (such as buttons or links) might not be prominent enough, or the content might not be engaging enough. In this case, analyze the email content and design, and optimize the presentation of the CTA or the relevance of the content."
+  },
+  "Sends": {
+    "Definition": "This refers to the total number of emails sent in an email marketing campaign. It includes all attempts to send emails, regardless of whether they are successfully delivered to the recipient.",
+    "Meaning": "This metric reflects how many emails you have sent to your target audience. It is the foundational number in email marketing campaigns but does not directly reflect the success of the campaign.",
+    "Analysis Suggestions": "Ensure that the send volume is relevant to your target audience, and avoid sending emails to irrelevant email addresses, as this can lead to low open rates and high bounce rates. A high send volume should be accompanied by precise targeting and personalized email content; otherwise, it may result in wasted resources."
+  },
+  "Deliveries": {
+    "Definition": "This refers to the number of emails successfully delivered to the recipient’s inbox. It represents emails that have reached the intended recipients and were not flagged as spam or failed to be delivered for other reasons.",
+    "Meaning": "This metric reflects the successful delivery of your emails to the inboxes of your recipients.",
+    "Analysis Suggestions": "The delivery rate should ideally be close to the send volume, indicating that your email delivery system (such as email servers and anti-spam mechanisms) is working properly. If the delivery volume is much lower than the send volume, you need to review the quality of your email list to ensure that you are sending to valid, deliverable email addresses and not encountering undelivered messages."
+  },
+  "Delivery Rate": {
+    "Definition": "The delivery rate is the percentage of emails that were successfully delivered to recipients out of the total emails sent.",
+    "Meaning": "The delivery rate shows the proportion of emails that successfully reached the recipients' inboxes. A higher delivery rate indicates that emails are being successfully delivered and not flagged as spam.",
+    "Analysis Suggestions": "If the delivery rate is low, this might be due to inaccurate email addresses or emails being treated as spam. You should clean your email list and ensure proper email address validation to improve this rate. Strategies to improve delivery rates include cleaning invalid email addresses, checking email server reputation, and ensuring correct configurations."
+  },
+  "Bounce Rate": {
+    "Definition": "The bounce rate is the percentage of emails that failed to be delivered out of the total emails sent.",
+    "Meaning": "The bounce rate indicates the proportion of emails that could not be delivered to recipients. A high bounce rate suggests that many of your emails could not reach their intended destinations.",
+    "Analysis Suggestions": "Monitoring and reducing the bounce rate is critical to improving the effectiveness of your email marketing. You can reduce the bounce rate by regularly cleaning your email list, using double opt-in methods, and ensuring proper email address validation. If the bounce rate is high, check the source of the email list to ensure that it is not flagged as spam or that you are not sending to low-quality email addresses."
+  }
+}

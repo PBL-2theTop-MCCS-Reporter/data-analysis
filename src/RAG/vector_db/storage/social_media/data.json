@@ -1,0 +1,42 @@
+{
+  "Brand Posts": {
+    "Definition": "Brand Posts refer to content published by a brand on social media or other digital platforms to promote its image, products, or services.",
+    "Meaning": "These posts aim to enhance brand visibility, engage users, drive traffic, and gather consumer insights. They can include images, videos, text, and links.",
+    "Analysis Suggestions": "More Brand Posts can increase reach but may lead to audience fatigue if overdone. Focusing on high-quality and relevant content is essential. Diversifying content types (educational, promotional, interactive) can improve engagement."
+  },
+  "Total Engagements": {
+    "Definition": "Total Engagements represent the sum of all user interactions with a brand’s posts, including likes, comments, shares, and clicks.",
+    "Meaning": "This metric indicates how actively the audience interacts with the content and reflects brand influence.",
+    "Analysis Suggestions": "A high engagement rate suggests strong audience interest and content effectiveness. Low engagement may indicate the need for better content strategies or audience targeting. Encouraging interactive posts (polls, questions, giveaways) can boost engagements."
+  },
+  "Post Likes and Reactions": {
+    "Definition": "Post Likes and Reactions refer to the number of likes and emoji-based responses (e.g., love, wow, sad) a post receives on social media.",
+    "Meaning": "Likes and reactions indicate positive audience sentiment and approval of the content.",
+    "Analysis Suggestions": "High likes suggest appealing content but don’t always mean deeper engagement. Encouraging emotional connection through storytelling can increase reactions. Monitoring reaction types (e.g., \"love\" vs. \"angry\") helps gauge audience sentiment."
+  },
+  "Post Shares": {
+    "Definition": "The number of times a post is shared by users, spreading it to a wider audience.",
+    "Meaning": "A strong indicator of content virality and audience advocacy, as users share content they find valuable or relatable.",
+    "Analysis Suggestions": "Encouraging shareable content (e.g., informative, emotional, or entertaining posts) and adding calls-to-action can increase reach and organic visibility."
+  },
+  "Post Comments": {
+    "Definition": "The number of user-generated responses or discussions under a post.",
+    "Meaning": "A sign of deep engagement, as users take the time to express opinions, ask questions, or engage in conversations.",
+    "Analysis Suggestions": "More comments indicate strong audience interaction. Brands should actively respond to comments to foster community engagement and encourage discussions through thought-provoking questions or interactive content."
+  },
+  "Post Reach": {
+    "Definition": "The total number of unique users who have seen a post on their feed.",
+    "Meaning": "Indicates the overall visibility of a post and how effectively it is being distributed by the platform’s algorithm.",
+    "Analysis Suggestions": "Higher reach increases brand awareness, but engagement is key. To boost reach, brands should optimize posting times, use relevant hashtags, and create shareable content."
+  },
+  "Estimated Clicks": {
+    "Definition": "The number of times users click on a post, including links, images, or buttons.",
+    "Meaning": "Reflects user interest and intent, as clicks often indicate curiosity or intent to learn more.",
+    "Analysis Suggestions": " Higher clicks suggest compelling content, but low conversion rates may indicate a weak call-to-action (CTA). Brands should optimize headlines, visuals, and CTAs to improve click-through rates and drive meaningful interactions."
+  },
+  "Volume of Published Messages": {
+    "Definition": "The total number of posts, updates, or messages a brand publishes across social media platforms within a given timeframe.",
+    "Meaning": "Measures the brand’s content output and consistency in communication with its audience.",
+    "Analysis Suggestions": "A higher volume can increase visibility but may lead to content saturation. Brands should focus on a balanced posting strategy, ensuring quality over quantity while maintaining regular engagement with the audience."
+  }
+}
