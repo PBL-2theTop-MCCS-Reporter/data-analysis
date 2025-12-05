@@ -1,6 +1,6 @@
 from src.RAG.data_loader import get_faiss_index
 from langchain_core.output_parsers import StrOutputParser
-from .email_prompt_template import email_marketing_template, email_marketing_over_time_template, email_marketing_email_domain_day_of_week_template, email_marketing_final_result_template
+from .email_prompt_template import email_marketing_template, email_marketing_over_time_template, email_marketing_email_domain_day_of_week_template, email_marketing_final_result_template, email_data_highlight_template
 from .data_analysis_util import analyze_monthly_feature, analyze_email_domain_performance, analyze_weekday_performance
 from src.RAG.embedding_client import EmbeddingClient
 import numpy as np
@@ -144,6 +144,27 @@ def email_final_result_response(llm_client, result_0, result_1, result_2):
         "result_0": result_0,
         "result_1": result_1,
         "result_2": result_2
+    }
+
+    response = email_chain.invoke(context)
+    return response
+
+def email_data_highlight_response(llm_client, email_domain_sends, email_domain_unique_opens,
+                                          email_weekday_sends, email_weekday_unique_opens, email_data):
+
+    sends = analyze_monthly_feature(email_data[["date", "Sends"]], "Sends")
+    deliveries = analyze_monthly_feature(email_data[["date", "Deliveries"]], "Deliveries")
+
+    email_domain = analyze_email_domain_performance(email_domain_sends, email_domain_unique_opens)
+    weekday = analyze_weekday_performance(email_weekday_sends, email_weekday_unique_opens)
+
+    email_chain = email_data_highlight_template | llm_client | StrOutputParser()
+
+    context = {
+        "sends": sends,
+        "deliveries": deliveries,
+        "email_domain": email_domain,
+        "weekday": weekday
     }
 
     response = email_chain.invoke(context)
