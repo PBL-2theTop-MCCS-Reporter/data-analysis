@@ -44,6 +44,8 @@ langchain-core==0.3.76
 langchain-openai==0.3.33
 langchain-text-splitters==0.3.11
 langsmith==0.4.31
+ollama==0.4.8
+langchain-ollama==0.3.2
 MarkupSafe==3.0.3
 marshmallow==3.26.1
 mpmath==1.3.0
