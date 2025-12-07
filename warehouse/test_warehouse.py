@@ -115,11 +115,28 @@ def test_queries(warehouse: YearlongDataWarehouse):
         logger.info(f"Result 2: {convert_jargons(session=session, df=result2)}")
         logger.info("✓ Query 2 executed successfully")
 
-        return True
+        # Test DataFrame conversion
+        logger.info("=" * 60)
+        logger.info("Testing DataFrame conversion functionality...")
+
+        # Convert query result to DataFrame
+        df_result = session.to_dataframe(result1)
+        logger.info(f"✓ DataFrame conversion successful: {len(df_result)} rows, {len(df_result.columns)} columns")
+        logger.info(f"DataFrame columns: {list(df_result.columns)}")
+        logger.info(f"DataFrame sample:\n{df_result.head()}")
+
+        # Test combined query_as_dataframe method
+        logger.info("=" * 60)
+        logger.info("Testing combined query_as_dataframe method...")
+        df_combined = session.query_facts_as_dataframe([1], ['1100'], [2], date(2024, 10, 1))
+        logger.info(f"✓ Combined method successful: {len(df_combined)} rows, {len(df_combined.columns)} columns")
+        logger.info(f"Combined DataFrame:\n{df_combined}")
 
     except Exception as e:
         logger.error(f"✗ Query testing failed: {e}")
         return False
+
+    return True
 
 # def evaluate_approach():
 #     """Evaluate the proposed warehouse approach."""
