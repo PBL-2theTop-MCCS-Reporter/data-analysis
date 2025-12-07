@@ -22,6 +22,8 @@ httpx==0.28.1
 httpx-sse==0.4.1
 huggingface-hub==0.35.1
 idna==3.10
+ollama==0.4.8
+langchain-ollama==0.3.2
 Jinja2==3.1.6
 jiter==0.11.0
 joblib==1.5.2
