@@ -92,20 +92,6 @@ def get_llm_client():
         return OllamaLLM(model="llama3:8b")
 
 def generate_report():
-    # llm_client = get_llm_client()
-    # assessments = email_marketing_dashboard_functions.generate_email_report(llm_client)
-    # social_media_report = email_marketing_dashboard_functions.generate_social_media_report(llm_client)
-    #
-    # print("==========THE ASSESSMENTS RESULT==============")
-    # print(assessments)
-    # print("==========THE SOCIAL MEDIA REPORT RESULT==============")
-    # print(social_media_report)
-    #
-    # pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], assessments, social_media_report)
-    # st.session_state.generated_pdf = pdf_buffer
-    # doc_buffer = create_doc(report_time_range[0], report_time_range[1], assessments, social_media_report)
-    # st.session_state.generated_doc = doc_buffer
-
     # Split on the section titles
     parts = re.split(
         r"(Email Assessment|Social Media Assessment|Email Highlight|Social Media Highlight)",
@@ -123,6 +109,8 @@ def generate_report():
     content_list = [email_assessment, email_highlight, social_media]
     pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], content_list)
     st.session_state.generated_pdf = pdf_buffer
+    doc_buffer = create_doc(report_time_range[0], report_time_range[1], content_list)
+    st.session_state.generated_doc = doc_buffer
 
 def generate_report_with_prompt(prompt):
     api_key = os.getenv('OPENAI_API_KEY')

@@ -229,25 +229,6 @@ def add_raw_output_to_report_content(raw_text, current_report):
     cleaned_text = [item.strip() for item in items if item.strip()]
     for item in cleaned_text:
         print(item)
-    # # Process assessments and social_media_report raw output
-    # assessments = raw_assessments.split("\n")
-    # cleaned_assessments = []
-    # for assessment in assessments:
-    #     cleaned_assessment = assessment.partition(".")[2].strip()
-    #     if len(cleaned_assessment.strip()) > 0:
-    #         cleaned_assessments.append(cleaned_assessment)
-    #
-    # social_media_findings = raw_social_media_report.split("\n\n")
-    # cleaned_social_media_findings = []
-    # for finding in social_media_findings:
-    #     if len(finding.strip()) > 0:
-    #         cleaned_finding = finding.partition(".")[2].strip()
-    #         parts = cleaned_finding.split("\n")
-    #         if len(parts) == 2:
-    #             cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
-    #             cleaned_social_media_findings.append(cleaned_line)
-    #         else:
-    #             cleaned_social_media_findings.append(cleaned_finding)
 
     # Turn it into content blocks
     content = []
@@ -259,27 +240,6 @@ def add_raw_output_to_report_content(raw_text, current_report):
         content.append(content_block)
 
     current_report.append(content)
-    # current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
-    #                                    bold=True,
-    #                                    font_size=15,
-    #                                    color="#24446C",
-    #                                    underline=True,
-    #                                    alignment=Alignment.CENTER,
-    #                                    new_paragraph=True)),
-    # current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
-    #                                    bold=True,
-    #                                    font_size=15,
-    #                                    color="#24446C",
-    #                                    underline=True,
-    #                                    alignment=Alignment.CENTER,
-    #                                    new_paragraph=True)),
-    # current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
-    #                                    bold=True,
-    #                                    font_size=15,
-    #                                    color="#24446C",
-    #                                    underline=True,
-    #                                    alignment=Alignment.CENTER,
-    #                                    new_paragraph=True)),
     return current_report
 
 def parse_time(begin, end):
@@ -455,9 +415,33 @@ def create_pdf(beginning_month, ending_month, content_list):
     buffer.seek(0)
     return buffer
 
-def create_doc(beginning_month, ending_month, assessments, social_media_report):
+def create_doc(beginning_month, ending_month, content_list):
     # Get current report (combines template + Ollama)
-    current_report = add_raw_output_to_report_content(assessments, social_media_report)
+    current_report = get_report_content()
+    current_report = add_raw_output_to_report_content(content_list[0], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report = add_raw_output_to_report_content(content_list[1], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report = add_raw_output_to_report_content(content_list[2], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True))
 
     # Replace all placeholders
     replace_placeholders(current_report, beginning_month, ending_month)
