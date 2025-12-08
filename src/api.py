@@ -46,25 +46,32 @@ def read_root():
                                                                 data['time_series']['delivery'][feature].rename(
                                                                     columns={'Daily': 'date'}))
 
-    pdf_buffer = generate_pdf(
-        "Email Assessment" + "\n\n" + email_report +
-        "\n\n" + "Social Media Assessment" + "\n\n" + social_media_report +
-        "\n\n" + "Email Highlight" + "\n\n" + email_data_highlight_report +
-        "\n\n" + "Social Media Highlight" + "\n\n" + social_media_data_highlight_report
+    # pdf_buffer = generate_pdf(
+    #     "Email Assessment" + "\n\n" + email_report +
+    #     "\n\n" + "Social Media Assessment" + "\n\n" + social_media_report +
+    #     "\n\n" + "Email Highlight" + "\n\n" + email_data_highlight_report +
+    #     "\n\n" + "Social Media Highlight" + "\n\n" + social_media_data_highlight_report
+    # )
+    #
+    # # 设置响应为 PDF 文件
+    # headers = {
+    #     "Content-Disposition": 'inline; filename="assessment_report.pdf"'
+    #     # 如果你想让浏览器直接下载，改成：
+    #     # "Content-Disposition": 'attachment; filename="assessment_report.pdf"'
+    # }
+
+    return (
+            "Email Assessment\n\n" + email_report +
+            "\n\nSocial Media Assessment\n\n" + social_media_report +
+            "\n\nEmail Highlight\n\n" + email_data_highlight_report +
+            "\n\nSocial Media Highlight\n\n" + social_media_data_highlight_report
     )
 
-    # 设置响应为 PDF 文件
-    headers = {
-        "Content-Disposition": 'inline; filename="assessment_report.pdf"'
-        # 如果你想让浏览器直接下载，改成：
-        # "Content-Disposition": 'attachment; filename="assessment_report.pdf"'
-    }
-
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers=headers
-    )
+    # return StreamingResponse(
+    #     pdf_buffer,
+    #     media_type="application/pdf",
+    #     headers=headers
+    # )
 
 data = load_data()
 sm_data = load_raw_data()

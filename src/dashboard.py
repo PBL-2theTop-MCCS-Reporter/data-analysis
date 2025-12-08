@@ -6,6 +6,7 @@ import base64
 from report import create_pdf, create_doc
 import sys
 import os
+import re
 
 from langchain_openai import ChatOpenAI
 
@@ -13,24 +14,10 @@ from langchain_openai import ChatOpenAI
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 import retail_llm_insights
-from email_marketing_dashboard.functions import generate_email_report, generate_social_media_report
+import email_marketing_dashboard.functions as email_marketing_dashboard_functions
+import src.api as src_api_functions
 
 load_dotenv()
-
-# def get_img_as_base64(file):
-#     with open(file, "rb") as f:
-#         data = f.read()
-#     return base64.b64encode(data).decode()
-#
-#
-# header_img = get_img_as_base64("images/MCCS-header.png")
-
-# style = f"""
-# <style>
-# [data-testid="stHeader"] {{
-#     background-image: url("data:image/png;base64,{header_img}");
-#     background-size: cover;
-# }}
 
 style = f"""
 <style>
@@ -105,31 +92,37 @@ def get_llm_client():
         return OllamaLLM(model="llama3:8b")
 
 def generate_report():
-    llm_client = get_llm_client()
-    assessments = generate_email_report(llm_client)
-    social_media_report = generate_social_media_report(llm_client)
-    # For testing:
-#     assessments = """
-# 1. To boost overall email performance, Marketing will optimize subject lines and A/B test different options to increase open rates. Additionally, regular cleaning and purging of the email list is crucial to maintain a healthy list and improve delivery rates.
-# 2. Marketing will capitalize on high-engagement days by amplifying specific content or campaigns that drove high engagement during peak days, which account for 40.7% of total sends.
-# 3. To improve email marketing performance, Marketing will optimize email content for low-performing domains like aol.com and leverage best-performing weekdays like Friday for maximum impact, with the highest sends (304,410) and opens (96,472).
-#     """
-#
-#     social_media_report = """
-# 1. The social media campaign's engagement levels vary across different time slots and days of the week, with the most active time slot being 19:00. It is crucial to optimize the content strategy for peak engagement hours by leveraging the audience's preferences for interactive content such as polls, questions, or giveaways.
-#     - Evidence: The most active time slot is 19:00, with an average engagement of 711.14.
-#
-# 2. With Thursday having the highest total engagement at 10220, it is essential to develop content strategies that cater to this day specifically. This could involve sharing more engaging and informative content such as educational posts, news updates, or industry insights, which are likely to resonate with the audience on weekdays.
-#     - Evidence: Thursday has the highest total engagement at 10220, indicating a strong audience response to content shared on this day.
-#
-# 3. To boost social media engagement, it is necessary to focus on creating high-quality, relevant, and diverse content that resonates with the audience. This can be achieved by asking thought-provoking questions, sharing user-generated content, or hosting social media contests that drive brand loyalty and advocacy.
-#     - Evidence: The provided social media marketing data shows a decline in engagement metrics (Posts, Total Engagements, Post Likes and Reactions) despite an increase in post shares and comments.
-#
-#     """
-    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], assessments, social_media_report)
+    # llm_client = get_llm_client()
+    # assessments = email_marketing_dashboard_functions.generate_email_report(llm_client)
+    # social_media_report = email_marketing_dashboard_functions.generate_social_media_report(llm_client)
+    #
+    # print("==========THE ASSESSMENTS RESULT==============")
+    # print(assessments)
+    # print("==========THE SOCIAL MEDIA REPORT RESULT==============")
+    # print(social_media_report)
+    #
+    # pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], assessments, social_media_report)
+    # st.session_state.generated_pdf = pdf_buffer
+    # doc_buffer = create_doc(report_time_range[0], report_time_range[1], assessments, social_media_report)
+    # st.session_state.generated_doc = doc_buffer
+
+    # Split on the section titles
+    parts = re.split(
+        r"(Email Assessment|Social Media Assessment|Email Highlight|Social Media Highlight)",
+        src_api_functions.read_root()
+    )
+
+    sections = {
+        parts[i]: parts[i + 1].strip()
+        for i in range(1, len(parts), 2)
+    }
+
+    email_assessment = sections["Email Assessment"]
+    email_highlight = sections["Email Highlight"]
+    social_media = sections["Social Media Assessment"] + sections["Social Media Highlight"]
+    content_list = [email_assessment, email_highlight, social_media]
+    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], content_list)
     st.session_state.generated_pdf = pdf_buffer
-    doc_buffer = create_doc(report_time_range[0], report_time_range[1], assessments, social_media_report)
-    st.session_state.generated_doc = doc_buffer
 
 def generate_report_with_prompt(prompt):
     api_key = os.getenv('OPENAI_API_KEY')

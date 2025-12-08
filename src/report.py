@@ -22,6 +22,8 @@ from docx.oxml.ns import qn
 import base64
 import sys
 import os
+import re
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Refer to ContentBlock.py for list of useful functions. Use a list within the report_content to activate a bullet list
@@ -216,69 +218,68 @@ def get_report_content():
     ]
     return report_content
 
-def add_raw_output_to_report_content(raw_assessments, raw_social_media_report):
-    # Process assessments and social_media_report raw output
-    assessments = raw_assessments.split("\n")
-    cleaned_assessments = []
-    for assessment in assessments:
-        cleaned_assessment = assessment.partition(".")[2].strip()
-        if len(cleaned_assessment.strip()) > 0:
-            cleaned_assessments.append(cleaned_assessment)
+def add_raw_output_to_report_content(raw_text, current_report):
+    # Normalize whitespace
+    text = raw_text.strip()
 
-    social_media_findings = raw_social_media_report.split("\n\n")
-    cleaned_social_media_findings = []
-    for finding in social_media_findings:
-        if len(finding.strip()) > 0:
-            cleaned_finding = finding.partition(".")[2].strip()
-            parts = cleaned_finding.split("\n")
-            if len(parts) == 2:
-                cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
-                cleaned_social_media_findings.append(cleaned_line)
-            else:
-                cleaned_social_media_findings.append(cleaned_finding)
+    # Split on numbered list markers (1. 2. 3. etc.)
+    items = re.split(r"^\s*\d+\.\s+", text, flags=re.MULTILINE)
+
+    # First split is always empty (text before 1.), so skip it
+    cleaned_text = [item.strip() for item in items if item.strip()]
+    for item in cleaned_text:
+        print(item)
+    # # Process assessments and social_media_report raw output
+    # assessments = raw_assessments.split("\n")
+    # cleaned_assessments = []
+    # for assessment in assessments:
+    #     cleaned_assessment = assessment.partition(".")[2].strip()
+    #     if len(cleaned_assessment.strip()) > 0:
+    #         cleaned_assessments.append(cleaned_assessment)
+    #
+    # social_media_findings = raw_social_media_report.split("\n\n")
+    # cleaned_social_media_findings = []
+    # for finding in social_media_findings:
+    #     if len(finding.strip()) > 0:
+    #         cleaned_finding = finding.partition(".")[2].strip()
+    #         parts = cleaned_finding.split("\n")
+    #         if len(parts) == 2:
+    #             cleaned_line = parts[0] + " (Evidence: " + parts[1].strip()[len("- Evidence:"):].strip() + ")"
+    #             cleaned_social_media_findings.append(cleaned_line)
+    #         else:
+    #             cleaned_social_media_findings.append(cleaned_finding)
 
     # Turn it into content blocks
-    assessments_content = []
-    for i, assessment in enumerate(cleaned_assessments):
-        if i == len(cleaned_assessments) - 1:
-            content_block = ContentBlock(assessment, new_paragraph=True)
+    content = []
+    for i, statement in enumerate(cleaned_text):
+        if i == len(cleaned_text) - 1:
+            content_block = ContentBlock(statement, new_paragraph=True)
         else:
-            content_block = ContentBlock(assessment, new_line=True)
-        assessments_content.append(content_block)
+            content_block = ContentBlock(statement, new_line=True)
+        content.append(content_block)
 
-    social_media_content = []
-    for i, finding in enumerate(cleaned_social_media_findings):
-        if i == len(cleaned_social_media_findings) - 1:
-            content_block = ContentBlock(finding, new_paragraph=True)
-        else:
-            content_block = ContentBlock(finding, new_line=True)
-        social_media_content.append(content_block)
-
-    # Build the report using the existing template + new Ollama Information
-    current_report = get_report_content()
-    current_report.append(assessments_content)
-    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
-                                       bold=True,
-                                       font_size=15,
-                                       color="#24446C",
-                                       underline=True,
-                                       alignment=Alignment.CENTER,
-                                       new_paragraph=True)),
-    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
-                                       bold=True,
-                                       font_size=15,
-                                       color="#24446C",
-                                       underline=True,
-                                       alignment=Alignment.CENTER,
-                                       new_paragraph=True)),
-    current_report.append(social_media_content),
-    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
-                                       bold=True,
-                                       font_size=15,
-                                       color="#24446C",
-                                       underline=True,
-                                       alignment=Alignment.CENTER,
-                                       new_paragraph=True)),
+    current_report.append(content)
+    # current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
+    #                                    bold=True,
+    #                                    font_size=15,
+    #                                    color="#24446C",
+    #                                    underline=True,
+    #                                    alignment=Alignment.CENTER,
+    #                                    new_paragraph=True)),
+    # current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
+    #                                    bold=True,
+    #                                    font_size=15,
+    #                                    color="#24446C",
+    #                                    underline=True,
+    #                                    alignment=Alignment.CENTER,
+    #                                    new_paragraph=True)),
+    # current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
+    #                                    bold=True,
+    #                                    font_size=15,
+    #                                    color="#24446C",
+    #                                    underline=True,
+    #                                    alignment=Alignment.CENTER,
+    #                                    new_paragraph=True)),
     return current_report
 
 def parse_time(begin, end):
@@ -350,9 +351,33 @@ def pdf_bullet_list(styles, bullet_points):
         spaceBefore=12
     )
 
-def create_pdf(beginning_month, ending_month, assessments, social_media_report):
+def create_pdf(beginning_month, ending_month, content_list):
     # Get current report (combines template + Ollama)
-    current_report = add_raw_output_to_report_content(assessments, social_media_report)
+    current_report = get_report_content()
+    current_report = add_raw_output_to_report_content(content_list[0], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Email Highlights",
+                                      bold=True,
+                                      font_size=15,
+                                      color="#24446C",
+                                      underline=True,
+                                      alignment=Alignment.CENTER,
+                                      new_paragraph=True)),
+    current_report = add_raw_output_to_report_content(content_list[1], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Social Media Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True)),
+    current_report = add_raw_output_to_report_content(content_list[2], current_report)
+    current_report.append(ContentBlock("{DateRange} MCX Customer Satisfaction Highlights",
+                                       bold=True,
+                                       font_size=15,
+                                       color="#24446C",
+                                       underline=True,
+                                       alignment=Alignment.CENTER,
+                                       new_paragraph=True))
 
     # Replace all placeholders
     replace_placeholders(current_report, beginning_month, ending_month)
@@ -395,6 +420,7 @@ def create_pdf(beginning_month, ending_month, assessments, social_media_report):
     indent_block = False
     for block in current_report:
         if isinstance(block, ContentBlock):
+            print(block.text)
             tagged = tagged + content_block_to_formatted_text(block)
             if block.indent:
                 indent_block = True
