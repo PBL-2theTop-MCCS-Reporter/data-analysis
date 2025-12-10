@@ -116,7 +116,6 @@ def save_insights_to_file(insights, file_path='retail_analysis_results/llm_insig
     try:
         with open(file_path, 'w') as f:
             f.write(insights)
-        print(f"Insights saved to {file_path}")
         return True
     except Exception as e:
         print(f"Error saving insights: {str(e)}")
@@ -215,8 +214,6 @@ def convert_markdown_to_pdf(markdown_file_path, pdf_file_path=None):
 
         # Build the PDF
         doc.build(story)
-
-        print(f"PDF saved to {pdf_file_path}")
         return True
     except Exception as e:
         print(f"Error converting markdown to PDF: {str(e)}")
@@ -316,9 +313,7 @@ if __name__ == "__main__":
         # Only generate PDF from existing markdown file
         pdf_path = args.pdf if args.pdf else None
         success = convert_markdown_to_pdf(args.output, pdf_path)
-        if success:
-            print(f"PDF generated successfully from {args.output}")
-        else:
+        if not success:
             print(f"Failed to generate PDF from {args.output}")
     else:
         # Configure OpenAI client
@@ -334,9 +329,3 @@ if __name__ == "__main__":
         if args.generate_pdf or args.pdf:
             pdf_path = args.pdf if args.pdf else None
             convert_markdown_to_pdf(args.output, pdf_path)
-
-        # Print insights to console
-        print("\n" + "=" * 50)
-        print("RETAIL ANALYSIS LLM INSIGHTS")
-        print("=" * 50)
-        print(insights)

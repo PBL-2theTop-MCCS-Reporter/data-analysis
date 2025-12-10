@@ -85,7 +85,6 @@ def get_llm_client():
     from dotenv import load_dotenv
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
-    print(api_key)
     if api_key and api_key.startswith(("'", '"')):
         api_key = api_key.strip("'\"")
     return ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, api_key=api_key)

@@ -12,12 +12,10 @@ def main():
     Builds FAISS indexes for all specified databases.
     It will automatically use OPENAI_API_KEY from the .env file if it exists.
     """
-    print("Starting FAISS index generation...")
     load_dotenv()
     
     build_faiss_index("email")
     build_faiss_index("social_media")
-    print("\nAll indexes have been successfully generated.")
 
 if __name__ == "__main__":
     main()

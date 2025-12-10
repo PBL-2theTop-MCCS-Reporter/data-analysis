@@ -6,11 +6,9 @@ import matplotlib.pyplot as plt
 # Load the data
 data = pd.read_csv('/Users/huawei/Spaces/pbl/data-analysis/data/convertedcsv/Advertising_Email_Engagement/Advertising_Email_Engagement.xlsx-Email_Engagement_Engagement_Tim.csv', header=0)  # Adjust header if necessary
 data.columns = data.columns.str.strip()
-print(data.columns)
 
 # Convert 'Daily' column to datetime
 data['Daily'] = pd.to_datetime(data['Daily'], format='%Y-%m-%d %H:%M:%S')
-print(data['Daily'].iloc[0])  # Print first date value
 
 # Set the index to the 'Daily' column
 data.set_index('Daily', inplace=True)

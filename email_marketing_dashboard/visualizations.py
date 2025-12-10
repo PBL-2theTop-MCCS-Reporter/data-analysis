@@ -278,7 +278,6 @@ def plot_heatmap(data, x_axis, y_axis, value_col, title=None):
 def plot_weekly_social_media_data(data, metric, title):
 
     df = pd.DataFrame(data)
-    print(df)
 
     # 使用 Plotly 绘制折线图
     fig = px.line(

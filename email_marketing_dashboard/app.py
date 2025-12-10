@@ -203,7 +203,6 @@ if page == "Dashboard":
                 if st.button("Start AI Analysis", key="button_1"):
                     with st.spinner("AI processing..."):
                         feature = ["Sends", "Deliveries", "Daily"]
-                        print(data['time_series']['delivery'][feature])
                         st.session_state.email_performance_over_time_response = email_performance_over_time_response(llm_client,
                             data['time_series']['delivery'][feature].rename(columns={'Daily': 'date'}))
             with col2:
@@ -305,7 +304,6 @@ elif page == "Delivery Analysis":
         except KeyError:
             # Use the bounce rate from summary data instead
             bounce_rate = data['summary']['bounce_rate']['Bounce Rate'].iloc[0]
-            print(f"Using summary bounce rate: {bounce_rate}")
         st.metric("Average Bounce Rate", f"{bounce_rate:.2%}")
     
     with col3:

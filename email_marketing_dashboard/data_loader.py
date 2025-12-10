@@ -37,28 +37,13 @@ def load_data():
     print(f"File exists: {os.path.exists(csv_path)}")
     
     try:
-        # Try reading the first few lines of the file to see the format
-        with open(csv_path, 'r') as f:
-            print("CSV file first 5 lines:")
-            for i, line in enumerate(f):
-                if i < 5:
-                    print(line.strip())
-                else:
-                    break
-                    
         delivery_time = pd.read_csv(csv_path)
-        print("Original columns:", delivery_time.columns.tolist())
-        
-        # Display first few rows to debug
-        print("First 2 rows of data:")
-        print(delivery_time.head(2))
         
         delivery_time['Daily'] = pd.to_datetime(delivery_time['Daily'])
         
         # Strip whitespace from all column names
         delivery_time.columns = delivery_time.columns.str.strip()
-        print("After stripping whitespace:", delivery_time.columns.tolist())
-        
+
         # Create Bounce Rate column if it doesn't exist
         bounce_rate_col = None
         for col in delivery_time.columns:
@@ -67,14 +52,11 @@ def load_data():
                 break
                 
         if bounce_rate_col and bounce_rate_col != 'Bounce Rate':
-            print(f"Found column '{bounce_rate_col}', renaming to 'Bounce Rate'")
             delivery_time = delivery_time.rename(columns={bounce_rate_col: 'Bounce Rate'})
         elif not any('bounce' in col.lower() and 'rate' in col.lower() for col in delivery_time.columns):
-            print("No Bounce Rate column found, creating one from Bounces and Sends")
             if 'Bounces' in delivery_time.columns and 'Sends' in delivery_time.columns:
                 delivery_time['Bounce Rate'] = delivery_time['Bounces'] / delivery_time['Sends']
             
-        print("Final columns:", delivery_time.columns.tolist())
         data['time_series']['delivery'] = delivery_time
         
     except Exception as e:

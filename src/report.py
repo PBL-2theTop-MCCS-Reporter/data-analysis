@@ -227,8 +227,6 @@ def add_raw_output_to_report_content(raw_text, current_report):
 
     # First split is always empty (text before 1.), so skip it
     cleaned_text = [item.strip() for item in items if item.strip()]
-    for item in cleaned_text:
-        print(item)
 
     # Turn it into content blocks
     content = []
@@ -380,7 +378,6 @@ def create_pdf(beginning_month, ending_month, content_list):
     indent_block = False
     for block in current_report:
         if isinstance(block, ContentBlock):
-            print(block.text)
             tagged = tagged + content_block_to_formatted_text(block)
             if block.indent:
                 indent_block = True

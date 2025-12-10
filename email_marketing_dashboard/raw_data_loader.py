@@ -112,7 +112,5 @@ def get_media_type(data):
 
     media_type.rename(columns=lambda x: x.replace(" (SUM)", ""), inplace=True)
 
-    print(media_type)
-
     return media_type
 

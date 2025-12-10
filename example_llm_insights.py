@@ -35,8 +35,7 @@ def main():
         print("Error: Summary report not found. Please run the static analysis first.")
         return
     
-    print("Generating AI insights from retail analysis results...")
-    
+
     # Configure OpenAI client
     client = configure_openai_client(args.api_key)
     
@@ -52,14 +51,6 @@ def main():
     
     # Save insights to file
     save_insights_to_file(insights, args.output)
-    
-    # Print insights to console
-    print("\n" + "="*50)
-    print("RETAIL ANALYSIS LLM INSIGHTS")
-    print("="*50)
-    print(insights)
-    
-    print(f"\nInsights saved to {args.output}")
 
 if __name__ == "__main__":
     main()

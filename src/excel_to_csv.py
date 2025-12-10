@@ -38,7 +38,6 @@ excel_file = '../data/rawdata/CustomerSurveyResponses.xlsx'
 xls = pd.ExcelFile(excel_file)
 
 for sheet_name in xls.sheet_names:
-    print(sheet_name)
     df = pd.read_excel(xls, sheet_name=sheet_name, skiprows=0)
     df = df.iloc[:, :-1]  # Remove last column
     
@@ -98,8 +97,6 @@ for sheet_name in xls.sheet_names:
         xls = pd.ExcelFile(excel_file)
         
         for sheet_name in xls.sheet_names:
-            print(f"Processing sheet: {sheet_name}")
-            
             # Read sheet
             df = pd.read_excel(xls, sheet_name=sheet_name)
             

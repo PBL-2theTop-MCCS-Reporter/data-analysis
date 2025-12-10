@@ -21,9 +21,6 @@ sns.set(style="whitegrid")
 # Create output directory for visualizations
 os.makedirs('retail_analysis_results', exist_ok=True)
 
-print("Starting Retail Sales Data Analysis...")
-print("Loading data (this may take a few minutes due to the large file size)...")
-
 # Load the data using Dask for better memory management with large files
 # Try to read from CSV first, if not available, use the Parquet file
 import os
@@ -61,7 +58,6 @@ df['IS_RETURN'] = df['RETURN_IND'] == 'Y'
 
 # Compute basic statistics
 with ProgressBar():
-    print("Computing basic statistics...")
     # Convert to pandas for easier analysis after aggregation
     total_sales = df['EXTENSION_AMOUNT'].sum().compute()
     total_transactions = df['SLIP_NO'].nunique().compute()
@@ -74,20 +70,9 @@ with ProgressBar():
     commands = df['COMMAND_NAME'].unique().compute()
     store_formats = df['STORE_FORMAT'].unique().compute()
 
-print(f"\nAnalysis Period: Dec 2024 - Jan 2025")
-print(f"Total Sales: ${total_sales:,.2f}")
-print(f"Total Transactions: {total_transactions:,}")
-print(f"Total Unique Items: {total_items:,}")
-print(f"Total Quantity Sold: {total_quantity:,}")
-print(f"Return Rate: {return_rate:.2f}%")
-print(f"Number of Stores: {len(stores)}")
-print(f"Number of Commands: {len(commands)}")
-print(f"Store Formats: {', '.join(store_formats)}")
-
 # ----------------------
 # Temporal Trend Analysis
 # ----------------------
-print("\nAnalyzing temporal trends...")
 
 # Daily sales trend
 daily_sales = df.groupby('SALE_DATE')['EXTENSION_AMOUNT'].sum().compute().reset_index()
@@ -147,7 +132,6 @@ plt.savefig('retail_analysis_results/sales_by_hour.png')
 # ----------------------
 # Product Analysis
 # ----------------------
-print("\nAnalyzing product trends...")
 
 # Top selling products by revenue
 top_products_revenue = df.groupby(['ITEM_ID', 'ITEM_DESC'])['EXTENSION_AMOUNT'].sum().compute().reset_index()
@@ -198,7 +182,6 @@ plt.savefig('retail_analysis_results/price_status_analysis.png')
 # ----------------------
 # Store Analysis
 # ----------------------
-print("\nAnalyzing store performance...")
 
 # Sales by store format
 store_format_sales = df.groupby('STORE_FORMAT')['EXTENSION_AMOUNT'].sum().compute().reset_index()
@@ -241,7 +224,6 @@ plt.savefig('retail_analysis_results/top_stores_revenue.png')
 # ----------------------
 # Transaction Analysis
 # ----------------------
-print("\nAnalyzing transaction patterns...")
 
 # Calculate transaction size (items per transaction)
 transaction_size = df.groupby('SLIP_NO')['QTY'].sum().compute().reset_index()
@@ -272,7 +254,6 @@ plt.savefig('retail_analysis_results/transaction_value_distribution.png')
 # ----------------------
 # Return Analysis
 # ----------------------
-print("\nAnalyzing return patterns...")
 
 # Return rate by product
 return_by_product = df.groupby(['ITEM_ID', 'ITEM_DESC']).agg({'IS_RETURN': 'mean'}).compute().reset_index()
@@ -305,7 +286,6 @@ plt.savefig('retail_analysis_results/top_stores_return_rate.png')
 # ----------------------
 # Generate Summary Report
 # ----------------------
-print("\nGenerating summary report...")
 
 with open('retail_analysis_results/summary_report.txt', 'w') as f:
     f.write("MCCS Retail Sales Data Analysis Summary\n")
@@ -356,6 +336,3 @@ with open('retail_analysis_results/summary_report.txt', 'w') as f:
     
     # Return insights
     f.write(f"10. Product with highest return rate: {return_by_product.iloc[0]['ITEM_DESC']} ({return_by_product.iloc[0]['RETURN_RATE']:.2f}%)\n")
-
-print("\nAnalysis complete! Results saved to 'retail_analysis_results' directory.")
-print("Run the script with 'python retail_trends_analysis.py' to execute the analysis.")

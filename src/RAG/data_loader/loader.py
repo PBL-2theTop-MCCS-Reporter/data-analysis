@@ -34,7 +34,6 @@ def build_faiss_index(db_name, openai_api_key=None):
 
     save_index(index, db_name)
     save_metadata(keys, db_name)
-    print(f"向量数据库 `{db_name}` 构建完成！")
 
 def get_faiss_index(db_name):
     # 返回 FAISS 索引文件

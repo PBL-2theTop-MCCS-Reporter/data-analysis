@@ -25,12 +25,7 @@ def get_embedder(llm_client):
 
 def social_media_key_performance_response(llm_client, social_media_data, user_feedback, recommendations_count=5,
                                           k_num=4):
-    print(user_feedback)
-
     parameter_extraction = json.loads(social_media_parameter_extraction(llm_client, user_feedback))
-
-    print(parameter_extraction)
-    print(type(parameter_extraction))
 
     # 获取向量数据库
     index, keys, data = get_faiss_index(db_name)
@@ -50,11 +45,6 @@ def social_media_key_performance_response(llm_client, social_media_data, user_fe
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i + 1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join(
@@ -64,8 +54,6 @@ def social_media_key_performance_response(llm_client, social_media_data, user_fe
     social_media_data["user_feedback"] = user_feedback
     social_media_data["recommendations_count"] = parameter_extraction.get(
         "recommendation_count") or recommendations_count
-
-    print(social_media_data)
 
     response = email_chain.invoke(social_media_data)
     return response
@@ -90,11 +78,6 @@ def social_media_posts_over_time_response(llm_client, social_media_data, k_num=6
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i + 1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join(
@@ -121,8 +104,6 @@ def social_media_posts_over_time_response(llm_client, social_media_data, k_num=6
         "search_results": search_results
     }
 
-    print(context)
-
     response = email_chain.invoke(context)
     return response
 
@@ -146,11 +127,6 @@ def social_media_hourly_engagements_response(llm_client, social_media_data, k_nu
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i + 1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join(

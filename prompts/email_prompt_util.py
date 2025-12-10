@@ -35,11 +35,6 @@ def email_key_performance_response(llm_client, email_data, recommendations_count
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i+1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join([f"{term}: {document['Definition']} {document['Meaning']} {document['Analysis Suggestions']}"
@@ -69,11 +64,6 @@ def email_performance_over_time_response(llm_client, email_data, k_num = 2):
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i+1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join([f"{term}: {document['Definition']} {document['Meaning']} {document['Analysis Suggestions']}"
@@ -110,11 +100,6 @@ def email_domain_day_of_week_response(llm_client, email_domain_sends, email_doma
     # 显示所有相关术语的结果
     for i, retrieved_term in enumerate(retrieved_terms):
         retrieved_document = retrieved_documents[i]
-        print(f"Best match {i+1}: {retrieved_term}")
-        print(f"Definition: {retrieved_document['Definition']}")
-        print(f"Meaning: {retrieved_document['Meaning']}")
-        print(f"Analysis Suggestions: {retrieved_document['Analysis Suggestions']}")
-        print("-" * 50)
 
     # 合并所有相关文档作为上下文
     search_results = "\n".join([f"{term}: {document['Definition']} {document['Meaning']} {document['Analysis Suggestions']}"
@@ -123,9 +108,6 @@ def email_domain_day_of_week_response(llm_client, email_domain_sends, email_doma
 
     email_domain = analyze_email_domain_performance(email_domain_sends, email_domain_unique_opens)
     weekday = analyze_weekday_performance(email_weekday_sends, email_weekday_unique_opens)
-
-    print(email_domain)
-    print(weekday)
 
     context = {
         "email_domain": email_domain,

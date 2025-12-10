@@ -1,4 +1,7 @@
+import threading
+
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
 import pandas as pd
 import time
@@ -77,55 +80,65 @@ def query_status_update(new_state):
     st.session_state.quick_options_status = "Not Active"
 
 def get_llm_client():
-    """
-    Returns an LLM client. Prioritizes OpenAI if an API key is provided,
-    otherwise falls back to a local Ollama model.
-    """
     api_key = os.getenv('OPENAI_API_KEY')
 
     if api_key:
         # st.sidebar.success("OpenAI API key is active.", icon="✅")
         return ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, api_key=api_key)
     else:
-        from langchain_ollama import OllamaLLM
-        # st.sidebar.warning("OpenAI API key not found. Falling back to local Ollama model. Responses may be slower or less accurate.", icon="⚠️")
-        return OllamaLLM(model="llama3:8b")
+        st.sidebar.warning("OpenAI API key is missing or OpenAI is unavailable. Results are not able to be loaded during this time.", icon="⚠️")
+
+    # In case you want to use Ollama as a backup
+    # else:
+    #     from langchain_ollama import OllamaLLM
+    #     # st.sidebar.warning("OpenAI API key not found. Falling back to local Ollama model. Responses may be slower or less accurate.", icon="⚠️")
+    #     return OllamaLLM(model="llama3:8b")
 
 def generate_report():
-    # Split on the section titles
-    parts = re.split(
-        r"(Email Assessment|Social Media Assessment|Email Highlight|Social Media Highlight)",
-        src_api_functions.read_root()
-    )
+    try:
+        # Split on the section titles
+        parts = re.split(
+            r"(Email Assessment|Social Media Assessment|Email Highlight|Social Media Highlight)",
+            src_api_functions.read_root()
+        )
 
-    sections = {
-        parts[i]: parts[i + 1].strip()
-        for i in range(1, len(parts), 2)
-    }
+        sections = {
+            parts[i]: parts[i + 1].strip()
+            for i in range(1, len(parts), 2)
+        }
 
-    email_assessment = sections["Email Assessment"]
-    email_highlight = sections["Email Highlight"]
-    social_media = sections["Social Media Assessment"] + sections["Social Media Highlight"]
-    content_list = [email_assessment, email_highlight, social_media]
-    pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], content_list)
-    st.session_state.generated_pdf = pdf_buffer
-    doc_buffer = create_doc(report_time_range[0], report_time_range[1], content_list)
-    st.session_state.generated_doc = doc_buffer
+        email_assessment = sections["Email Assessment"]
+        email_highlight = sections["Email Highlight"]
+        social_media = sections["Social Media Assessment"] + sections["Social Media Highlight"]
+        content_list = [email_assessment, email_highlight, social_media]
+        pdf_buffer = create_pdf(report_time_range[0], report_time_range[1], content_list)
+        st.session_state.generated_pdf = pdf_buffer
+        doc_buffer = create_doc(report_time_range[0], report_time_range[1], content_list)
+        st.session_state.generated_doc = doc_buffer
+        quick_options_status_update("Success")
+    except Exception as e:
+        quick_options_status_update("Failure")
+        print("Ran into following error while generating quick report: " + str(e))
 
 def generate_report_with_prompt(prompt):
-    api_key = os.getenv('OPENAI_API_KEY')
-    if api_key is None:
-        raise ValueError("OPENAI_API_KEY not found in environment. Did you forget to load .env? If so, please create .env in your root directory, and store your api key in the OPENAI_API_KEY environment variable.")
-    open_ai_client = retail_llm_insights.configure_openai_client(api_key=api_key)
+    try:
+        api_key = os.getenv('OPENAI_API_KEY')
+        if api_key is None:
+            raise ValueError("OPENAI_API_KEY not found in environment. Did you forget to load .env? If so, please create .env in your root directory, and store your api key in the OPENAI_API_KEY environment variable.")
+        open_ai_client = retail_llm_insights.configure_openai_client(api_key=api_key)
 
-    summary_content = retail_llm_insights.read_summary_report()
-    insights = retail_llm_insights.generate_retail_insights(
-        summary_content=summary_content,
-        question=prompt,
-        openai_client=open_ai_client,
-    )
-    pdf_buffer = retail_llm_insights.markdown_to_pdf_buffer(insights)
-    st.session_state.generated_pdf = pdf_buffer
+        summary_content = retail_llm_insights.read_summary_report()
+        insights = retail_llm_insights.generate_retail_insights(
+            summary_content=summary_content,
+            question=prompt,
+            openai_client=open_ai_client,
+        )
+        pdf_buffer = retail_llm_insights.markdown_to_pdf_buffer(insights)
+        st.session_state.generated_pdf = pdf_buffer
+        query_status_update("Success")
+    except Exception as e:
+        query_status_update("Failure")
+        print("Ran into following error while generating report using query: " + str(e))
 
 current_month = (pd.Timestamp.now() - pd.DateOffset(months=1)).strftime("%Y-%m")
 date_range = pd.date_range(start="2024-08", end=current_month, freq="MS").strftime("%b %Y").tolist()
@@ -136,27 +149,41 @@ st.header("Report Generation Tool")
 st.divider()
 
 st.subheader("Quick Report Generation")
-with st.form(key="quick_report_form"):
-    # USER INPUT for quick report generation - report year
-    report_time_range = st.select_slider(
-        "Choose a time range:",
-        options=date_range,
-        value=(date_range[0], date_range[-1])
-    )
-    st.caption(
-        "Select a start and end month, inclusive on both ends. (e.g. \"Aug 2024 - Aug 2024\" = Report for August 2024, \"Aug 2024 - Sep 2024\" = Report for both August and September 2024)")
-    report_type = "report"
-
-    if st.session_state.quick_options_status == "Loading":
-        submit_button = st.form_submit_button(label="Generate Report", disabled=True)
-    else:
-        submit_button = st.form_submit_button(label="Generate Report",
-                                              on_click=lambda: quick_options_status_update("Loading"))
-
+# FORM for quick report generation
 if st.session_state.quick_options_status == "Loading":
-    generate_report()
-    quick_options_status_update("Success")
-    st.rerun()
+    with st.form(key="quick_report_form"):
+        report_time_range = st.select_slider(
+            "Choose a time range:",
+            options=date_range,
+            value=(date_range[0], date_range[-1])
+        )
+        st.caption(
+            "Select a start and end month, inclusive on both ends. (e.g. \"Aug 2024 - Aug 2024\" = Report for August 2024, \"Aug 2024 - Sep 2024\" = Report for both August and September 2024)")
+        report_type = "report"
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            submit_button = st.form_submit_button(label="Generate Report", disabled=True)
+        with col2:
+            cancel_button = st.form_submit_button(label="Cancel",
+                                                  on_click=lambda: quick_options_status_update("Not Active"))
+else:
+    with st.form(key="quick_report_form"):
+        report_time_range = st.select_slider(
+            "Choose a time range:",
+            options=date_range,
+            value=(date_range[0], date_range[-1])
+        )
+        st.caption(
+            "Select a start and end month, inclusive on both ends. (e.g. \"Aug 2024 - Aug 2024\" = Report for August 2024, \"Aug 2024 - Sep 2024\" = Report for both August and September 2024)")
+        report_type = "report"
+        submit_button = st.form_submit_button(label="Generate Report", on_click=lambda: quick_options_status_update("Loading"))
+
+quick_options_spinner_placeholder = st.empty()
+if st.session_state.quick_options_status == "Loading":
+    with quick_options_spinner_placeholder.container():
+        st.info("Generating report... This may take a few minutes ⏳")
 elif st.session_state.quick_options_status == "Success":
     st.balloons()
     st.toast(f"Generating a {report_type} from {report_time_range[0]} to {report_time_range[1]}", icon="✅")
@@ -200,23 +227,42 @@ elif st.session_state.quick_options_status == "Not Active":
         )
 
 st.subheader("Report Generation by Prompt")
-# USER INPUT for prompt for AI report generation
+# USER INPUT for prompt for report generation using prompt
 st.write(
     "Generate a report using your own prompt using our AI tool. The AI is not perfect and may misunderstand certain prompts. Always check the result manually before referring to it. Click here for more information on guidelines.")
 
-with st.form(key="ai_report_form"):
-    # report_query = st.text_input("Query", key="report_query", on_change=enable_button)
-    # submit_button = st.form_submit_button(label="Generate Report", disabled=st.session_state.button_disabled)
-    st.session_state.query = st.text_input("Query", key="report_query")
-
-    if st.session_state.query_status == "Loading":
-        submit_button = st.form_submit_button(label="Generate Report", disabled=True)
-    else:
-        submit_button = st.form_submit_button(label="Generate Report", on_click=lambda: query_status_update("Loading"))
-
 if st.session_state.query_status == "Loading":
+    with st.form(key="ai_report_form"):
+        # report_query = st.text_input("Query", key="report_query", on_change=enable_button)
+        # submit_button = st.form_submit_button(label="Generate Report", disabled=st.session_state.button_disabled)
+        st.session_state.query = st.text_input("Query", key="report_query")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            submit_button = st.form_submit_button(label="Generate Report", disabled=True)
+        with col2:
+            cancel_button = st.form_submit_button(label="Cancel", on_click=lambda: query_status_update("Not Active"))
+
+else:
+    with st.form(key="ai_report_form"):
+        # report_query = st.text_input("Query", key="report_query", on_change=enable_button)
+        # submit_button = st.form_submit_button(label="Generate Report", disabled=st.session_state.button_disabled)
+        st.session_state.query = st.text_input("Query", key="report_query")
+        submit_button = st.form_submit_button(label="Generate Report",
+                                              on_click=lambda: query_status_update("Loading"))
+
+# RESPONSES FOR QUICK REPORT GENERATION
+if st.session_state.quick_options_status == "Loading":
+    generate_report()
+    st.rerun()
+
+# RESPONSES FOR QUERY REPORT GENERATION
+query_spinner_placeholder = st.empty()
+if st.session_state.query_status == "Loading":
+    with query_spinner_placeholder.container():
+        st.info("Generating report... This may take a few minutes ⏳")
     generate_report_with_prompt(st.session_state.query)
-    query_status_update("Success")
     st.rerun()
 elif st.session_state.query_status == "Success":
     st.balloons()
@@ -229,6 +275,6 @@ elif st.session_state.query_status == "Success":
         mime="application/pdf"
     )
     query_status_update("Not Active")
-elif st.session_state.quick_options_status == "Failure":
+elif st.session_state.query_status == "Failure":
     st.toast("Report failed to generate", icon="❌")
     query_status_update("Not Active")

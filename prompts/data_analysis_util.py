@@ -46,8 +46,6 @@ def analyze_monthly_feature(df_origin, feature):
         f"Peak detection identified the following days as abnormal high-engagement peaks (possibly driven by special content or campaigns): {', '.join(peak_dates)}."
     )
 
-    print(result_str + extra_str)
-
     return result_str + extra_str
 
 def analyze_email_domain_performance(sends_domain_df, opens_domain_df) -> str:
@@ -147,8 +145,6 @@ def analyze_hourly_engagements(df_origin):
     # 高峰互动时段识别总结
     summary.append(f"\n🚀 Peak Engagement Periods:\n  - The most active time slot is {peak_hour:02d}:00, with an average engagement of {peak_hour_value:.2f}")
     summary.append(f"  - The day with the highest total engagement is {peak_day}, with a total engagement of {peak_day_value}")
-
-    print(summary)
 
     # 返回总结文本
     return "\n".join(summary)
