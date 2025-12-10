@@ -84,7 +84,7 @@ def get_llm_client():
 
     if api_key:
         # st.sidebar.success("OpenAI API key is active.", icon="✅")
-        return ChatOpenAI(model="gpt-3.5-turbo", temperature=0.7, api_key=api_key)
+        return ChatOpenAI(model="gpt-4o", temperature=0.7, api_key=api_key)
     else:
         st.sidebar.warning("OpenAI API key is missing or OpenAI is unavailable. Results are not able to be loaded during this time.", icon="⚠️")
 

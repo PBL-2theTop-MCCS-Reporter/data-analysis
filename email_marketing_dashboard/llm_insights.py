@@ -9,7 +9,7 @@ def configure_openai_client(api_key=None):
         os.environ["OPENAI_API_KEY"] = api_key
     
     return ChatOpenAI(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         temperature=0.7,
         api_key=api_key
     )
