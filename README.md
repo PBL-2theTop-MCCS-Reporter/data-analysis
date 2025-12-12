@@ -37,7 +37,7 @@ Follow these steps to set up the project environment:
 4.  **Install required packages:**
     This command installs all the necessary libraries and dependencies listed in the `new_requirements.txt` file.
     ```bash
-    pip install -r new_requirements.txt
+    pip install -r requirements.txt
     ```
 
 ---
